@@ -16,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Files;
+use RuntimeException;
 use Throwable;
 
 class ReportController extends Controller
@@ -46,13 +47,14 @@ class ReportController extends Controller
             'gazetteer_node_id.*' => 'Pick your town or union council from the list.',
         ]);
 
-        // Only what the picker offers: a TMC town or a union council. A
-        // district or plain landmark id would route to nothing useful.
+        // Only what the picker offers: a town, union council or landmark that
+        // sits under a town with a TMC authority. A district id, or a place
+        // whose town routes to nobody, would resolve to nothing useful.
         $node = GazetteerNode::query()->find($validated['gazetteer_node_id']);
 
-        if (! $node || ! ($node->uc_code || ($node->kind === 'town' && $node->tmc_authority_id))) {
+        if (! $node || ! in_array($node->kind, ['town', 'landmark'], true) || ! $node->town()?->tmc_authority_id) {
             throw ValidationException::withMessages([
-                'gazetteer_node_id' => 'Pick your town or union council from the list.',
+                'gazetteer_node_id' => 'Pick your area from the list.',
             ]);
         }
 
@@ -169,11 +171,18 @@ class ReportController extends Controller
 
             $cacheKey = 'ai:classify:'.sha1($textForClassification.($report->photo_path ?? ''));
 
-            $classification = Cache::remember(
-                $cacheKey,
-                now()->addDays(7),
-                fn () => (new ClassifyReport)->prompt($textForClassification, attachments: $attachments, timeout: 25)->toArray(),
-            );
+            $classification = Cache::remember($cacheKey, now()->addDays(7), function () use ($textForClassification, $attachments) {
+                $result = (new ClassifyReport)->prompt($textForClassification, attachments: $attachments, timeout: 25)->toArray();
+
+                // DeepSeek occasionally returns empty content. Throwing keeps
+                // that out of the cache — otherwise the same input fails for a
+                // week — and hands the report to the catch block below.
+                if (blank($result['issue_type'] ?? null)) {
+                    throw new RuntimeException('Classification returned no issue_type.');
+                }
+
+                return $result;
+            });
 
             $report->classification = $classification;
             $report->issue_type = $classification['issue_type'];
@@ -239,11 +248,17 @@ class ReportController extends Controller
 
         $cacheKey = 'ai:draft:'.sha1(json_encode($report->routing).$report->raw_text);
 
-        $draft = Cache::remember(
-            $cacheKey,
-            now()->addDays(7),
-            fn () => (new DraftComplaint)->prompt($prompt, timeout: 40)->toArray(),
-        );
+        $draft = Cache::remember($cacheKey, now()->addDays(7), function () use ($prompt) {
+            $result = (new DraftComplaint)->prompt($prompt, timeout: 40)->toArray();
+
+            // Same guard as the classify call: an empty draft must not be
+            // cached, or this report can never be drafted again for a week.
+            if (blank($result['body_en'] ?? null)) {
+                throw new RuntimeException('Draft returned no body_en.');
+            }
+
+            return $result;
+        });
 
         $report->draft_en = $draft['body_en'];
         $report->draft_ur = $draft['body_ur'];
@@ -265,43 +280,57 @@ class ReportController extends Controller
             return $report->resolved_area;
         }
 
-        $town = $node->uc_code ? $node->parent : $node;
+        $town = $node->town();
 
         return implode(', ', array_filter([
             $node->name,
-            $node->uc_code ? $town?->name : null,
+            $town && $town->isNot($node) ? $town->name : null,
             $town?->district ? "District {$town->district}" : null,
         ]));
     }
 
     /**
-     * Everything the compose screen's place picker can offer: TMC towns and
-     * union councils. ~185 rows, filtered client-side.
+     * Everything the compose screen's place picker can offer: TMC towns, union
+     * councils, and the named landmarks under them. The whole list is filtered
+     * in the browser, so it must carry every place a citizen might type —
+     * Clifton, Tariq Road and Boat Basin are landmarks, not UCs, and were
+     * unfindable while this returned only the first two kinds.
+     *
+     * A landmark is only offered when its town resolves and that town has a
+     * TMC authority, because a place that routes to nobody is worse than one
+     * the citizen never sees.
      *
      * @return array<int, array<string, mixed>>
      */
     private function places(): array
     {
         return GazetteerNode::query()
-            ->with('parent')
-            ->where(fn ($query) => $query
-                ->whereNotNull('uc_code')
-                ->orWhere(fn ($q) => $q->where('kind', 'town')->whereNotNull('tmc_authority_id')))
+            ->with('parent.parent.parent')
+            ->whereIn('kind', ['town', 'landmark'])
             ->orderBy('name')
             ->get()
             ->map(function (GazetteerNode $node) {
-                $town = $node->uc_code ? $node->parent : $node;
+                $town = $node->town();
+
+                if (! $town?->tmc_authority_id) {
+                    return null;
+                }
 
                 return [
                     'id' => $node->id,
-                    'kind' => $node->uc_code ? 'uc' : 'town',
+                    'kind' => match (true) {
+                        $node->kind === 'town' => 'town',
+                        (bool) $node->uc_code => 'uc',
+                        default => 'landmark',
+                    },
                     'name' => $node->name,
                     'uc_code' => $node->uc_code,
                     'aliases' => $node->aliases ?? [],
-                    'town' => $town?->name,
-                    'district' => $town?->district,
+                    'town' => $town->name,
+                    'district' => $town->district,
                 ];
             })
+            ->filter()
             ->values()
             ->all();
     }

@@ -16,6 +16,8 @@ function fold(text) {
         .trim();
 }
 
+const KIND_RANK = { town: 0, uc: 1, landmark: 2 };
+
 function matchStrength(haystacks, query) {
     let best = 0;
 
@@ -45,7 +47,7 @@ export function placeLabel(place) {
         return '';
     }
 
-    return [place.name, place.kind === 'uc' ? place.town : null, place.district ? `District ${place.district}` : null]
+    return [place.name, place.kind === 'town' ? null : place.town, place.district ? `District ${place.district}` : null]
         .filter(Boolean)
         .join(', ');
 }
@@ -72,8 +74,10 @@ export default function PlacePicker({ places, value, onChange, disabled = false 
                     return b.score - a.score;
                 }
 
+                // On an equal text match the broader place wins, so "clifton"
+                // offers the neighbourhood before its nine numbered blocks.
                 if (a.place.kind !== b.place.kind) {
-                    return a.place.kind === 'town' ? -1 : 1;
+                    return KIND_RANK[a.place.kind] - KIND_RANK[b.place.kind];
                 }
 
                 return a.place.name.localeCompare(b.place.name);
@@ -126,7 +130,7 @@ export default function PlacePicker({ places, value, onChange, disabled = false 
                 <span aria-hidden="true">📍</span>
                 <span className="min-w-0 flex-1 truncate">
                     <span className="font-medium">{value.name}</span>
-                    {value.kind === 'uc' && <span className="text-accent-700">, {value.town}</span>}
+                    {value.kind !== 'town' && <span className="text-accent-700">, {value.town}</span>}
                     {value.district && <span className="text-accent-700"> · District {value.district}</span>}
                 </span>
                 <button
@@ -194,9 +198,9 @@ export default function PlacePicker({ places, value, onChange, disabled = false 
                         >
                             <p className="text-sm font-medium text-stone-900">{place.name}</p>
                             <p className="text-xs text-stone-500">
-                                {place.kind === 'uc'
-                                    ? `${place.uc_code} · ${place.town} · District ${place.district}`
-                                    : `Town · District ${place.district}`}
+                                {place.kind === 'uc' && `${place.uc_code} · ${place.town} · District ${place.district}`}
+                                {place.kind === 'landmark' && `${place.town} · District ${place.district}`}
+                                {place.kind === 'town' && `Town · District ${place.district}`}
                             </p>
                         </li>
                     ))}

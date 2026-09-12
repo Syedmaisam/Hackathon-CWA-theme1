@@ -37,6 +37,23 @@ class GazetteerNode extends Model
         return $this->belongsTo(Authority::class, 'tmc_authority_id');
     }
 
+    /**
+     * The town this node sits in, or itself if it already is one. Landmarks
+     * nest up to three deep — Boat Basin sits under Clifton Block 2, which
+     * sits under Clifton, which sits under Saddar — so this walks the chain
+     * rather than reading `parent` once. The depth cap is a cycle guard.
+     */
+    public function town(): ?self
+    {
+        $node = $this;
+
+        for ($hops = 0; $node && $node->kind !== 'town' && $hops < 5; $hops++) {
+            $node = $node->parent;
+        }
+
+        return $node?->kind === 'town' ? $node : null;
+    }
+
     public function specialZoneAuthority(): BelongsTo
     {
         return $this->belongsTo(Authority::class, 'special_zone_authority_id');

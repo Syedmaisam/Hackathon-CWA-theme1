@@ -140,7 +140,11 @@ class SumairSeeder extends Seeder
             ['name' => 'Nazimabad', 'aliases' => ['ناظم آباد', 'Nazimabad Town'], 'authority' => 'tmc_nazimabad', 'district' => 'Central'],
             ['name' => 'North Nazimabad', 'aliases' => ['NNB', 'North Nazimabad Town', 'نارتھ ناظم آباد', 'Nazimabad North'], 'authority' => 'tmc_north_nazimabad', 'district' => 'Central'],
             ['name' => 'Liaquatabad', 'aliases' => ['لیاقت آباد', 'Lalukhet', 'Liaqatabad'], 'authority' => 'tmc_liaquatabad', 'district' => 'Central'],
-            ['name' => 'Gulberg', 'aliases' => ['گلبرگ', 'Gulberg Town'], 'authority' => 'tmc_gulberg', 'district' => 'Central'],
+            // Nobody in Karachi calls this Gulberg. The area is universally
+            // "F.B. Area" / "Federal B Area", which is also how the TMC's own
+            // office address reads in the v2 dataset. Without these aliases a
+            // citizen typing the only name they use finds nothing.
+            ['name' => 'Gulberg', 'aliases' => ['گلبرگ', 'Gulberg Town', 'F.B. Area', 'FB Area', 'Federal B Area', 'Federal B. Area', 'ایف بی ایریا', 'فیڈرل بی ایریا'], 'authority' => 'tmc_gulberg', 'district' => 'Central'],
             ['name' => 'New Karachi', 'aliases' => ['نیو کراچی', 'New Karachi Town'], 'authority' => 'tmc_new_karachi', 'district' => 'Central'],
             ['name' => 'Orangi Town', 'aliases' => ['Orangi', 'اورنگی', 'Orangi Township'], 'authority' => 'tmc_orangi', 'district' => 'West'],
             ['name' => 'Mominabad', 'aliases' => ['مومن آباد', 'Momin Abad'], 'authority' => 'tmc_mominabad', 'district' => 'West'],

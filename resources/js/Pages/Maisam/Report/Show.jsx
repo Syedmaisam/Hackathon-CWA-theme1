@@ -1,4 +1,4 @@
-import { useForm, Head, Link, usePoll } from '@inertiajs/react';
+import { useForm, Head, usePoll } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import Icon from '@/Components/Icon';
@@ -226,6 +226,13 @@ export default function Show({ report, routing, issueTypes }) {
         }
     }, [isProcessing, stopPolling]);
 
+    // A full page load, not an Inertia visit: the compose screen keeps its
+    // typed text, photo and picked place in React state, so a client-side
+    // navigation would drop the citizen back into their previous report.
+    function startOver() {
+        window.location.assign('/');
+    }
+
     function copyDraft() {
         if (!draft) {
             return;
@@ -238,19 +245,28 @@ export default function Show({ report, routing, issueTypes }) {
 
     const header = (
         <header className="flex shrink-0 items-center gap-2 border-b border-stone-200 bg-white px-2 py-3">
-            <Link
-                href="/"
+            <button
+                type="button"
+                onClick={startOver}
                 aria-label="Back to reporting"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-stone-600 transition hover:bg-stone-100"
             >
                 <Icon name="arrow-left" className="h-5 w-5" />
-            </Link>
-            <div className="min-w-0">
+            </button>
+            <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-stone-900">Your report</p>
                 <p className="truncate text-xs text-stone-500">
                     {report.resolved_area ? `${report.resolved_area}, Karachi` : 'Karachi civic reporting'}
                 </p>
             </div>
+            <button
+                type="button"
+                onClick={startOver}
+                className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent-50 px-3 text-sm font-medium text-accent-800 transition hover:bg-accent-100"
+            >
+                <Icon name="plus-square" className="h-4 w-4" />
+                New report
+            </button>
         </header>
     );
 
@@ -502,13 +518,14 @@ export default function Show({ report, routing, issueTypes }) {
                         </Section>
 
                         <div className="mt-6 mb-2">
-                            <Link
-                                href="/"
-                                className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-stone-300 bg-white px-5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                            <button
+                                type="button"
+                                onClick={startOver}
+                                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-stone-300 bg-white px-5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                             >
                                 <Icon name="plus-square" className="h-4 w-4" />
                                 Report something else
-                            </Link>
+                            </button>
                         </div>
                     </>
                 )}
