@@ -1,28 +1,42 @@
-import { Link } from '@inertiajs/react';
+import BottomNav from '@/Components/BottomNav';
+import InstallPrompt from '@/Components/InstallPrompt';
 
 /**
- * bare = the page manages its own full-height layout and scrolling. Used by the
- * compose screen, which pins a WhatsApp-style composer to the bottom of the
- * viewport and therefore cannot sit inside a padded, centred <main>.
+ * The app shell.
+ *
+ * Fixed to the viewport height with only the content region scrolling. That one
+ * property is most of what makes an installed PWA feel native: the page itself
+ * never scrolls, so there is no rubber-band overscroll revealing the browser
+ * behind it and no address-bar collapse jank mid-gesture.
+ *
+ * The tab bar lives inside this flex column rather than being position-fixed,
+ * so the iOS keyboard cannot cover it.
+ *
+ * `header` and `footer` are rendered outside the scroll region and stay put.
+ * The compose screen uses `footer` for its composer bar; the report screen uses
+ * it for the sticky send actions.
  */
-export default function AppLayout({ children, bare = false }) {
-    if (bare) {
-        return <div className="flex h-dvh flex-col bg-stone-50">{children}</div>;
-    }
-
+export default function AppLayout({ children, header = null, footer = null, padded = true }) {
     return (
-        <div className="min-h-screen bg-stone-50">
-            <header className="border-b border-stone-200 bg-white">
-                <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
-                    <Link href="/" className="text-base font-semibold tracking-tight text-stone-900 sm:text-lg">
-                        The City Around You
-                    </Link>
-                    {/* Redundant on a phone, where the title already fills the bar. */}
-                    <span className="hidden text-sm text-stone-500 sm:inline">Karachi civic reporting</span>
-                </div>
-            </header>
+        <div className="flex h-dvh flex-col overflow-hidden bg-stone-50">
+            <InstallPrompt />
 
-            <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
+            {header}
+
+            {/* Extra bottom padding when a footer is present: the last section
+                would otherwise sit underneath the sticky action bar and read as
+                cut off at the end of the scroll. */}
+            <main
+                className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+                    padded ? `px-4 pt-5 ${footer ? 'pb-8' : 'pb-5'}` : ''
+                }`}
+            >
+                {padded ? <div className="mx-auto max-w-2xl">{children}</div> : children}
+            </main>
+
+            {footer}
+
+            <BottomNav />
         </div>
     );
 }

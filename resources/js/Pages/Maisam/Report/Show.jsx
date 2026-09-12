@@ -1,6 +1,7 @@
 import { useForm, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import Icon from '@/Components/Icon';
 
 const CONFIDENCE_STYLE = {
     high: 'bg-emerald-100 text-emerald-800',
@@ -35,9 +36,25 @@ function isUrdu(text) {
     return /[؀-ۿ]/.test(text ?? '');
 }
 
-function Chip({ children }) {
+function Chip({ icon, children }) {
     return (
-        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">{children}</span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
+            {icon && <Icon name={icon} className="h-3.5 w-3.5" />}
+            {children}
+        </span>
+    );
+}
+
+/** A grouped section, the way an app lists settings — label, then one surface. */
+function Section({ title, action, children }) {
+    return (
+        <section className="mt-6">
+            <div className="flex items-end justify-between gap-2 px-1 pb-2">
+                <h2 className="text-xs font-semibold tracking-wide text-stone-500 uppercase">{title}</h2>
+                {action}
+            </div>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">{children}</div>
+        </section>
     );
 }
 
@@ -50,25 +67,26 @@ function ClarifyForm({ report }) {
     }
 
     return (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 sm:p-6">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-medium text-amber-900">
                 {report.clarifying_question || 'We need a bit more detail before we can route this.'}
             </p>
-            <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <form onSubmit={submit} className="mt-3 space-y-2">
                 <input
                     type="text"
                     value={data.answer}
                     onChange={(e) => setData('answer', e.target.value)}
                     placeholder="Type your answer…"
-                    dir={/[؀-ۿ]/.test(data.answer) ? 'rtl' : 'ltr'}
-                    className="min-h-11 flex-1 rounded-lg border border-stone-300 p-3 text-base focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
+                    disabled={processing}
+                    dir={isUrdu(data.answer) ? 'rtl' : 'ltr'}
+                    className="min-h-11 w-full rounded-xl border border-amber-200 bg-white p-3 text-base focus:border-accent-600 focus:ring-1 focus:ring-accent-600 focus:outline-none disabled:opacity-60"
                 />
                 <button
                     type="submit"
                     disabled={processing || !data.answer.trim()}
-                    className="min-h-11 rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent-600 px-5 text-sm font-semibold text-white transition hover:bg-accent-700 disabled:opacity-40"
                 >
-                    Continue
+                    {processing ? 'Working it out…' : 'Continue'}
                 </button>
             </form>
             {errors.answer && <p className="mt-2 text-sm text-red-600">{errors.answer}</p>}
@@ -85,16 +103,17 @@ function CategoryPicker({ report, issueTypes }) {
     }
 
     return (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 sm:p-6">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
             <p className="text-sm font-medium text-red-900">
-                We couldn't reach our classifier just now. Pick the closest category and we'll still route
-                your complaint and draft it for you.
+                We couldn&apos;t reach our classifier just now. Pick the closest category and we&apos;ll
+                still route your complaint and draft it for you.
             </p>
-            <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <form onSubmit={submit} className="mt-3 space-y-2">
                 <select
                     value={data.issue_type}
                     onChange={(e) => setData('issue_type', e.target.value)}
-                    className="min-h-11 rounded-lg border border-stone-300 bg-white p-3 text-base focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
+                    disabled={processing}
+                    className="min-h-11 w-full rounded-xl border border-red-200 bg-white p-3 text-base focus:border-accent-600 focus:ring-1 focus:ring-accent-600 focus:outline-none disabled:opacity-60"
                 >
                     <option value="">Choose a category…</option>
                     {issueTypes.map((type) => (
@@ -106,9 +125,9 @@ function CategoryPicker({ report, issueTypes }) {
                 <button
                     type="submit"
                     disabled={processing || !data.issue_type}
-                    className="min-h-11 rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
+                    className="flex min-h-11 w-full items-center justify-center rounded-xl bg-accent-600 px-5 text-sm font-semibold text-white transition hover:bg-accent-700 disabled:opacity-40"
                 >
-                    Route my complaint
+                    {processing ? 'Routing your complaint…' : 'Route my complaint'}
                 </button>
             </form>
         </div>
@@ -124,14 +143,77 @@ export default function Show({ report, routing, issueTypes }) {
     const hasUnverified = routing.some((r) => r.contact_unverified);
     const verifiedEmail = routing.find((r) => r.email)?.email;
 
+    // draft_en and draft_ur can both be null on a drafted report. Without this
+    // the citizen can copy nothing and send an empty WhatsApp message.
+    const hasDraft = Boolean(draft?.trim());
+
     function copyDraft() {
-        navigator.clipboard.writeText(draft ?? '');
+        if (!hasDraft) {
+            return;
+        }
+
+        navigator.clipboard.writeText(draft);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     }
 
+    const header = (
+        <header className="flex shrink-0 items-center gap-2 border-b border-stone-200 bg-white px-2 py-3">
+            <Link
+                href="/"
+                aria-label="Back to reporting"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-stone-600 transition hover:bg-stone-100"
+            >
+                <Icon name="arrow-left" className="h-5 w-5" />
+            </Link>
+            <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-stone-900">Your report</p>
+                <p className="truncate text-xs text-stone-500">
+                    {report.resolved_area ? `${report.resolved_area}, Karachi` : 'Karachi civic reporting'}
+                </p>
+            </div>
+        </header>
+    );
+
+    // Sending is the entire point of this screen, so on a phone it is pinned
+    // above the tab bar rather than sitting below a long scroll.
+    const actions = report.status === 'drafted' && hasDraft && (
+        <div className="shrink-0 border-t border-stone-200 bg-white px-4 py-3">
+            <div className="mx-auto flex max-w-2xl gap-2">
+                <a
+                    href={`https://wa.me/?text=${encodeURIComponent(draft)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                    <Icon name="send" className="h-4 w-4" />
+                    Send on WhatsApp
+                </a>
+                <button
+                    type="button"
+                    onClick={copyDraft}
+                    aria-label="Copy the complaint"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-stone-300 text-stone-600 transition hover:bg-stone-50"
+                >
+                    <Icon name={copied ? 'check' : 'clipboard'} className="h-5 w-5" />
+                </button>
+                {verifiedEmail && (
+                    <a
+                        href={`mailto:${verifiedEmail}?subject=${encodeURIComponent(
+                            ISSUE_LABEL[report.issue_type] ?? 'Civic complaint',
+                        )}&body=${encodeURIComponent(draft)}`}
+                        aria-label="Send by email"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-stone-300 text-stone-600 transition hover:bg-stone-50"
+                    >
+                        <Icon name="envelope" className="h-5 w-5" />
+                    </a>
+                )}
+            </div>
+        </div>
+    );
+
     return (
-        <AppLayout>
+        <AppLayout header={header} footer={actions}>
             <Head title="Your report" />
 
             {/* The report reads as the message you sent, so the routing below it
@@ -161,21 +243,40 @@ export default function Show({ report, routing, issueTypes }) {
                     {(report.hazards ?? []).map((hazard) => (
                         <Chip key={hazard}>{hazard.replaceAll('_', ' ')}</Chip>
                     ))}
-                    {report.resolved_area && <Chip>📍 {report.resolved_area}</Chip>}
-                    {report.input_mode === 'voice' && <Chip>🎙 voice</Chip>}
+                    {report.resolved_area && <Chip icon="map-pin">{report.resolved_area}</Chip>}
+                    {report.input_mode === 'voice' && <Chip icon="microphone">voice</Chip>}
                 </div>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-6">
+                {/* pending is the column default and the value store() creates every
+                    report with, so it must render something rather than nothing. */}
+                {(report.status === 'pending' || report.status === 'processing') && (
+                    <div className="rounded-2xl bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            {[0, 1, 2].map((dot) => (
+                                <span
+                                    key={dot}
+                                    className="h-2 w-2 rounded-full bg-stone-400"
+                                    style={{ animation: `pulse 1.2s ease-in-out ${dot * 0.2}s infinite` }}
+                                />
+                            ))}
+                            <p className="text-sm text-stone-600">
+                                Still working out who owns this. Refresh in a moment.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {report.status === 'awaiting_answer' && <ClarifyForm report={report} />}
 
                 {report.status === 'ai_failed' && <CategoryPicker report={report} issueTypes={issueTypes} />}
 
                 {report.status === 'needs_review' && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-6">
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                         <div className="flex items-start gap-3">
-                            <span className="text-xl" aria-hidden="true">
-                                🔍
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                                <Icon name="magnifying-glass" className="h-4 w-4" />
                             </span>
                             <div className="text-sm text-amber-900">
                                 <p className="font-medium">A person needs to check this one</p>
@@ -195,48 +296,45 @@ export default function Show({ report, routing, issueTypes }) {
                     <>
                         {/* The whole product promise in one line: we worked out who
                             owns this. Without it the page opens on two grey cards. */}
-                        <div className="mb-6 flex items-start gap-3 rounded-xl border border-accent-100 bg-accent-50 p-4">
-                            <span className="text-xl" aria-hidden="true">
-                                ✅
+                        <div className="flex items-start gap-3 rounded-2xl border border-accent-100 bg-accent-50 p-4">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-600 text-white">
+                                <Icon name="check" className="h-4 w-4" strokeWidth={2.5} />
                             </span>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="font-medium text-stone-900">
                                     Routed to {routing[0]?.name ?? 'the responsible authority'}
                                 </p>
                                 <p className="mt-0.5 text-sm text-stone-600">
-                                    Your complaint is written and ready to send. Review it below, then send it
-                                    on WhatsApp or email.
+                                    Your complaint is written and ready to send.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
-                                    Who this goes to
-                                </h2>
-                                {report.routing_confidence && (
+                        <Section
+                            title="Who this goes to"
+                            action={
+                                report.routing_confidence && (
                                     <span
-                                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                            CONFIDENCE_STYLE[report.routing_confidence] ?? 'bg-stone-100 text-stone-700'
+                                        className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                                            CONFIDENCE_STYLE[report.routing_confidence] ??
+                                            'bg-stone-100 text-stone-700'
                                         }`}
                                     >
-                                        {report.routing_confidence} confidence
+                                        {report.routing_confidence.replaceAll('_', ' ')} confidence
                                     </span>
-                                )}
-                            </div>
-
+                                )
+                            }
+                        >
                             {hasOverride && (
-                                <p className="mt-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-800">
-                                    Inside a cantonment / DHA special zone — this overrides the usual district
-                                    routing.
+                                <p className="border-b border-stone-100 bg-accent-50 p-4 text-sm text-accent-800">
+                                    Inside a cantonment / DHA special zone — this overrides the usual
+                                    district routing.
                                 </p>
                             )}
 
-                            <ul className="mt-4 space-y-4">
+                            <ul className="divide-y divide-stone-100">
                                 {routing.map((r, i) => (
-                                    <li key={i} className="border-t border-stone-100 pt-4 first:border-0 first:pt-0">
+                                    <li key={i} className="p-4">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <span className="font-medium text-stone-900">{r.name}</span>
                                             <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
@@ -266,7 +364,7 @@ export default function Show({ report, routing, issueTypes }) {
                                                         href={`tel:${r.phone.replace(/[^+\d]/g, '')}`}
                                                         className="flex min-h-8 items-center gap-2 text-accent-700 hover:underline"
                                                     >
-                                                        <span aria-hidden="true">☎</span>
+                                                        <Icon name="phone" className="h-4 w-4 shrink-0" />
                                                         <span className="break-all">{r.phone}</span>
                                                     </a>
                                                 )}
@@ -275,7 +373,7 @@ export default function Show({ report, routing, issueTypes }) {
                                                         href={`mailto:${r.email}`}
                                                         className="flex min-h-8 items-center gap-2 text-accent-700 hover:underline"
                                                     >
-                                                        <span aria-hidden="true">✉</span>
+                                                        <Icon name="envelope" className="h-4 w-4 shrink-0" />
                                                         <span className="break-all">{r.email}</span>
                                                     </a>
                                                 )}
@@ -286,7 +384,7 @@ export default function Show({ report, routing, issueTypes }) {
                                                         rel="noreferrer"
                                                         className="flex min-h-8 items-center gap-2 text-stone-600 hover:underline"
                                                     >
-                                                        <span aria-hidden="true">🔗</span>
+                                                        <Icon name="link" className="h-4 w-4 shrink-0" />
                                                         <span className="break-all">{r.website}</span>
                                                     </a>
                                                 )}
@@ -297,24 +395,22 @@ export default function Show({ report, routing, issueTypes }) {
                             </ul>
 
                             {hasUnverified && (
-                                <p className="mt-4 text-xs text-stone-500">
-                                    Contacts marked unverified aren't confirmed live — we still route to them,
-                                    but recommend also using a verified channel above where one exists.
+                                <p className="border-t border-stone-100 p-4 text-xs text-stone-500">
+                                    Contacts marked unverified aren&apos;t confirmed live — we still route to
+                                    them, but recommend also using a verified channel above where one exists.
                                 </p>
                             )}
-                        </section>
+                        </Section>
 
-                        <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
-                                    Complaint draft
-                                </h2>
-                                <div className="flex overflow-hidden rounded-lg border border-stone-200 text-sm">
+                        <Section
+                            title="Complaint draft"
+                            action={
+                                <div className="flex overflow-hidden rounded-full border border-stone-200 text-xs">
                                     <button
                                         type="button"
                                         onClick={() => setLocale('en')}
                                         aria-pressed={locale === 'en'}
-                                        className={`min-h-9 px-4 transition ${locale === 'en' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+                                        className={`min-h-8 px-3 transition ${locale === 'en' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600'}`}
                                     >
                                         English
                                     </button>
@@ -322,57 +418,35 @@ export default function Show({ report, routing, issueTypes }) {
                                         type="button"
                                         onClick={() => setLocale('ur')}
                                         aria-pressed={locale === 'ur'}
-                                        className={`min-h-9 px-4 transition ${locale === 'ur' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
+                                        className={`min-h-8 px-3 transition ${locale === 'ur' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600'}`}
                                     >
                                         اردو
                                     </button>
                                 </div>
-                            </div>
-
-                            <pre
-                                dir={locale === 'ur' ? 'rtl' : 'ltr'}
-                                className="mt-4 max-h-80 overflow-y-auto rounded-lg bg-stone-50 p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800 sm:max-h-96"
-                            >
-                                {draft}
-                            </pre>
-
-                            {/* WhatsApp first and full-width on mobile: it is how a Karachi
-                                resident actually sends this, and the other two are secondary. */}
-                            <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
-                                <a
-                                    href={`https://wa.me/?text=${encodeURIComponent(draft ?? '')}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700"
+                            }
+                        >
+                            {hasDraft ? (
+                                <pre
+                                    dir={locale === 'ur' ? 'rtl' : 'ltr'}
+                                    className="max-h-96 overflow-y-auto p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800"
                                 >
-                                    Send on WhatsApp
-                                </a>
-                                <button
-                                    type="button"
-                                    onClick={copyDraft}
-                                    className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-                                >
-                                    {copied ? 'Copied ✓' : 'Copy'}
-                                </button>
-                                {verifiedEmail && (
-                                    <a
-                                        href={`mailto:${verifiedEmail}?subject=${encodeURIComponent(
-                                            ISSUE_LABEL[report.issue_type] ?? 'Civic complaint',
-                                        )}&body=${encodeURIComponent(draft ?? '')}`}
-                                        className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-                                    >
-                                        Email
-                                    </a>
-                                )}
-                            </div>
-                            </section>
-                        </div>
+                                    {draft}
+                                </pre>
+                            ) : (
+                                <p className="p-4 text-sm text-stone-500">
+                                    The {locale === 'ur' ? 'Urdu' : 'English'} version of this complaint
+                                    didn&apos;t come through. Switch language, or copy the other version and
+                                    send that.
+                                </p>
+                            )}
+                        </Section>
 
-                        <div className="mt-6 text-center">
+                        <div className="mt-6 mb-2">
                             <Link
                                 href="/"
-                                className="inline-flex min-h-11 items-center rounded-lg border border-stone-300 bg-white px-5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                                className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-stone-300 bg-white px-5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                             >
+                                <Icon name="plus-square" className="h-4 w-4" />
                                 Report something else
                             </Link>
                         </div>

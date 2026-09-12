@@ -18,3 +18,46 @@
     font-family: var(--font-urdu);
     line-height: 2.25;
 }
+
+/*
+ * Tailwind 4 defines @keyframes pulse but only emits it when the animate-pulse
+ * utility is used somewhere. Nothing uses that utility — the typing indicator
+ * and the voice recording dot both set a raw animation shorthand so they can
+ * stagger a per-dot delay — so the keyframe was absent from the built CSS and
+ * both indicators were silently static. Defining it here makes them animate.
+ */
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+/*
+ * Installed-app behaviour. The shell is a fixed-height flex column and only its
+ * content region scrolls, so the document itself must never bounce: an
+ * overscroll here reveals the browser background behind a supposedly native app.
+ */
+html,
+body {
+    overscroll-behavior: none;
+}
+
+/* The blue flash on every tap is a strong tell that this is a web page. */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Chrome only. Never applied globally: the complaint draft and the report body
+ * exist to be selected and copied.
+ */
+button,
+nav,
+[role='button'] {
+    user-select: none;
+    -webkit-user-select: none;
+}

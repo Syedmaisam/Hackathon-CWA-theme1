@@ -170,14 +170,64 @@ textarea always works, so a failed mic costs nothing but the voice flourish.
   the AI failure onto page two, which is backwards for triage, so anything still needing
   a human now floats to the top with newest first inside that.
 
+### PWA and mobile UI — built by Sumair, crossing into Maisam's lane again
+
+**Maisam: three of your files changed again. Presentation only, no props, no data flow,
+no PHP.** Full detail in `PWA.md`; the short version is here.
+
+The app is now an installable progressive web app with an app shell and bottom navigation,
+because roughly 70% of traffic will be on a phone and the site read as a website on one.
+
+- **Installable.** Manifest, service worker with an offline shell, generated icons in
+  maskable and standard variants, apple-touch-icon, and a real favicon replacing the
+  zero-byte placeholder. An install prompt appears once and remembers being dismissed.
+- **App shell.** `AppLayout` is a fixed-height flex column where only the content region
+  scrolls, which removes rubber-band overscroll and address-bar jank. It takes `header`,
+  `footer` and `padded` props. **The `bare` prop is gone** — every screen uses the shell.
+- **Bottom navigation.** Two tabs, Report and Help. A report page keeps the Report tab lit.
+- **Every emoji is now an inline SVG icon.** Twelve of them, in a new `Icon.jsx`. Emoji
+  render as a different picture per platform and ignore `currentColor`, so they could
+  never take the active or disabled state of the control holding them.
+- **New Help screen** at `/help`, Sumair's lane, one closure route in `routes/sumair.php`.
+  `routes/web.php` untouched.
+- **The report screen is a single column** with grouped sections, a back arrow in a real
+  app header, and the WhatsApp action pinned above the tab bar instead of below a scroll.
+
+**Two of your open items are now closed, both fixed as part of this pass:**
+
+- **Item 2, the `pending` blank page.** `Show.jsx` now has a branch for it, reusing the
+  compose screen's typing indicator, and an unknown future status falls through to the
+  same branch. Verified by creating a pending report in a transaction and reading the
+  Inertia props back.
+- **Item 3, loading feedback and the null-draft guard.** Both follow-up forms disable
+  their input and change their button label while the DeepSeek call runs. The send actions
+  hide when a `drafted` report has no draft text, so nobody can copy nothing or send an
+  empty WhatsApp message.
+
+**Two latent bugs were found and fixed while in there.** Neither was visible as a failure:
+
+- `env(safe-area-inset-bottom)` was already used by the composer but the viewport meta
+  lacked `viewport-fit=cover`, so it resolved to zero on every notched iPhone.
+- The `pulse` keyframe was never emitted into the built CSS. The built stylesheet had zero
+  `@keyframes` rules, so the typing indicator and the voice recording dot had never
+  animated. Defined explicitly in `app.css` now.
+
+Shared files touched: `app.blade.php`, `package.json`, `vite.config.js`, `app.css`,
+`.gitignore`. One package installed with Sumair's approval, `vite-plugin-pwa`.
+
+**Not verified:** installing to a real Android phone, offline behaviour, and the install
+prompt firing. Standalone mode, safe-area insets and the theme-coloured status bar only
+appear on real hardware. That is the one check left, and it is in `PWA.md`.
+
 ---
 
 ## Priority order from here
 
 Work top down. Each item says who owns it and why it is worth the time.
 
-Sumair's admin lane is finished. Everything left below is either shared (rehearsal) or
-Maisam's, and item 2 is the only thing in the build that is actually broken.
+Sumair's admin lane is finished. **Items 2 and 3 below are now done**, fixed during the
+PWA pass described above; they are kept here with their original wording so the history
+is legible. Nothing in the build is known to be broken.
 
 ### 1. Rehearse the demo — both, together, before anything else
 
@@ -194,7 +244,7 @@ draft. Rehearse it in Chrome with the microphone actually permitted, and agree a
 line in case the room's audio defeats it. Typing the same sentence loses nothing but the
 flourish.
 
-### 2. The `pending` status renders a blank page — Maisam
+### 2. ~~The `pending` status renders a blank page~~ — DONE, fixed in the PWA pass
 
 **This is the only actual defect left in the build.** Verified by creating a report with
 status `pending` and loading its page: it returns HTTP 200 and renders the header, the
@@ -210,7 +260,7 @@ the catch writes `ai_failed`, or the queue stops being `sync`. A fallback branch
 report is still being processed is a few lines, and it removes the only way to land a
 citizen on a dead page.
 
-### 3. Loading feedback on the two follow-up forms — Maisam
+### 3. ~~Loading feedback on the two follow-up forms~~ — DONE, fixed in the PWA pass
 
 The clarify form and the AI-failure category picker both re-run the pipeline, which makes
 a live DeepSeek call. Neither shows anything while that is in flight, so the citizen sees a

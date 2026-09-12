@@ -21,6 +21,9 @@
 /public/hot
 /public/js/filament
 /public/storage
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
 /storage/*.key
 /storage/pail
 /vendor

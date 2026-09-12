@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Icon from '@/Components/Icon';
 
 /**
  * Browser speech-to-text via the Web Speech API.
@@ -183,11 +184,15 @@ export default function VoiceNoteInput({ onTranscript, disabled = false, compact
                             : 'text-stone-600 hover:bg-stone-100'
                     }`}
                 >
-                    <span
-                        className={`h-2 w-2 rounded-full ${listening ? 'bg-red-500' : 'bg-stone-400'}`}
-                        style={listening ? { animation: 'pulse 1.4s ease-in-out infinite' } : undefined}
-                    />
-                    {listening ? 'Stop' : '🎙 Voice'}
+                    {listening ? (
+                        <span
+                            className="h-2 w-2 rounded-full bg-red-500"
+                            style={{ animation: 'pulse 1.4s ease-in-out infinite' }}
+                        />
+                    ) : (
+                        <Icon name="microphone" className="h-4 w-4" />
+                    )}
+                    {listening ? 'Stop' : 'Voice'}
                 </button>
 
                 {LANGUAGES.map((option) => (
