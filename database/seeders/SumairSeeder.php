@@ -126,36 +126,42 @@ class SumairSeeder extends Seeder
         }
 
         // Towns / TMCs — parented to their claimed district.
+        //
+        // Aliases carry the Urdu-script and Roman-Urdu spellings a resident is
+        // likely to type. Report::resolveLocation() lowercases the report text
+        // and substring-matches these, and input_language accepts ur and
+        // roman_urdu, so a town without them simply will not resolve from an
+        // Urdu report.
         $towns = [
-            ['name' => 'Saddar', 'authority' => 'tmc_saddar', 'district' => 'South'],
-            ['name' => 'Lyari', 'authority' => 'tmc_lyari', 'district' => 'South'],
-            ['name' => 'Jamshed', 'authority' => 'tmc_jamshed', 'district' => 'East'],
-            ['name' => 'Jinnah', 'authority' => 'tmc_jinnah', 'district' => 'East'],
-            ['name' => 'Gulshan-e-Iqbal', 'aliases' => ['Gulshan e Iqbal', 'Gulshan'], 'authority' => 'tmc_gulshan_e_iqbal', 'district' => 'East'],
-            ['name' => 'Chanesar', 'authority' => 'tmc_chanesar', 'district' => 'East'],
-            ['name' => 'Sohrab Goth', 'authority' => 'tmc_sohrab_goth', 'district' => 'East'],
-            ['name' => 'Safoora', 'authority' => 'tmc_safoora', 'district' => 'East'],
-            ['name' => 'Nazimabad', 'authority' => 'tmc_nazimabad', 'district' => 'Central'],
-            ['name' => 'North Nazimabad', 'aliases' => ['NNB', 'North Nazimabad Town'], 'authority' => 'tmc_north_nazimabad', 'district' => 'Central'],
-            ['name' => 'Liaquatabad', 'authority' => 'tmc_liaquatabad', 'district' => 'Central'],
-            ['name' => 'Gulberg', 'authority' => 'tmc_gulberg', 'district' => 'Central'],
-            ['name' => 'New Karachi', 'authority' => 'tmc_new_karachi', 'district' => 'Central'],
-            ['name' => 'Orangi Town', 'aliases' => ['Orangi'], 'authority' => 'tmc_orangi', 'district' => 'West'],
-            ['name' => 'Mominabad', 'authority' => 'tmc_mominabad', 'district' => 'West'],
-            ['name' => 'Manghopir', 'authority' => 'tmc_manghopir', 'district' => 'West'],
-            ['name' => 'Keamari', 'authority' => 'tmc_keamari', 'district' => 'Keamari'],
-            ['name' => 'SITE', 'authority' => 'tmc_site', 'district' => 'Keamari'],
-            ['name' => 'Baldia', 'authority' => 'tmc_baldia', 'district' => 'Keamari'],
-            ['name' => 'Korangi', 'authority' => 'tmc_korangi', 'district' => 'Korangi'],
-            ['name' => 'Landhi', 'authority' => 'tmc_landhi', 'district' => 'Korangi'],
-            ['name' => 'Shah Faisal', 'authority' => 'tmc_shah_faisal', 'district' => 'Korangi'],
-            ['name' => 'Model Colony', 'authority' => 'tmc_model_colony', 'district' => 'Korangi'],
-            ['name' => 'Malir Town', 'aliases' => ['Malik Town'], 'authority' => 'tmc_malir', 'district' => 'Malir'],
-            ['name' => 'Gadap', 'authority' => 'tmc_gadap', 'district' => 'Malir'],
-            ['name' => 'Ibrahim Hyderi', 'authority' => 'tmc_ibrahim_hyderi', 'district' => 'Malir'],
-            ['name' => 'Bin Qasim', 'authority' => 'tmc_bin_qasim', 'district' => 'Malir'],
+            ['name' => 'Saddar', 'aliases' => ['صدر', 'Sadar'], 'authority' => 'tmc_saddar', 'district' => 'South'],
+            ['name' => 'Lyari', 'aliases' => ['لیاری', 'Liyari', 'Lyari Town'], 'authority' => 'tmc_lyari', 'district' => 'South'],
+            ['name' => 'Jamshed', 'aliases' => ['جمشید', 'Jamshed Town', 'Jamshed Quarters'], 'authority' => 'tmc_jamshed', 'district' => 'East'],
+            ['name' => 'Jinnah', 'aliases' => ['جناح', 'Jinnah Town'], 'authority' => 'tmc_jinnah', 'district' => 'East'],
+            ['name' => 'Gulshan-e-Iqbal', 'aliases' => ['Gulshan e Iqbal', 'Gulshan', 'گلشن اقبال', 'گلشن', 'Gulshan Iqbal'], 'authority' => 'tmc_gulshan_e_iqbal', 'district' => 'East'],
+            ['name' => 'Chanesar', 'aliases' => ['چنیسر', 'Chanesar Town'], 'authority' => 'tmc_chanesar', 'district' => 'East'],
+            ['name' => 'Sohrab Goth', 'aliases' => ['سہراب گوٹھ', 'Sorab Goth'], 'authority' => 'tmc_sohrab_goth', 'district' => 'East'],
+            ['name' => 'Safoora', 'aliases' => ['صفورا', 'Safoora Goth', 'Safura'], 'authority' => 'tmc_safoora', 'district' => 'East'],
+            ['name' => 'Nazimabad', 'aliases' => ['ناظم آباد', 'Nazimabad Town'], 'authority' => 'tmc_nazimabad', 'district' => 'Central'],
+            ['name' => 'North Nazimabad', 'aliases' => ['NNB', 'North Nazimabad Town', 'نارتھ ناظم آباد', 'Nazimabad North'], 'authority' => 'tmc_north_nazimabad', 'district' => 'Central'],
+            ['name' => 'Liaquatabad', 'aliases' => ['لیاقت آباد', 'Lalukhet', 'Liaqatabad'], 'authority' => 'tmc_liaquatabad', 'district' => 'Central'],
+            ['name' => 'Gulberg', 'aliases' => ['گلبرگ', 'Gulberg Town'], 'authority' => 'tmc_gulberg', 'district' => 'Central'],
+            ['name' => 'New Karachi', 'aliases' => ['نیو کراچی', 'New Karachi Town'], 'authority' => 'tmc_new_karachi', 'district' => 'Central'],
+            ['name' => 'Orangi Town', 'aliases' => ['Orangi', 'اورنگی', 'Orangi Township'], 'authority' => 'tmc_orangi', 'district' => 'West'],
+            ['name' => 'Mominabad', 'aliases' => ['مومن آباد', 'Momin Abad'], 'authority' => 'tmc_mominabad', 'district' => 'West'],
+            ['name' => 'Manghopir', 'aliases' => ['منگھوپیر', 'Mangopir'], 'authority' => 'tmc_manghopir', 'district' => 'West'],
+            ['name' => 'Keamari', 'aliases' => ['کیماڑی', 'Kemari', 'Keamari Town', 'Kiamari'], 'authority' => 'tmc_keamari', 'district' => 'Keamari'],
+            ['name' => 'SITE', 'aliases' => ['سائٹ', 'SITE Town', 'Sind Industrial Trading Estate'], 'authority' => 'tmc_site', 'district' => 'Keamari'],
+            ['name' => 'Baldia', 'aliases' => ['بلدیہ', 'Baldia Town'], 'authority' => 'tmc_baldia', 'district' => 'Keamari'],
+            ['name' => 'Korangi', 'aliases' => ['کورنگی', 'Korangi Town'], 'authority' => 'tmc_korangi', 'district' => 'Korangi'],
+            ['name' => 'Landhi', 'aliases' => ['لانڈھی', 'Landhi Town'], 'authority' => 'tmc_landhi', 'district' => 'Korangi'],
+            ['name' => 'Shah Faisal', 'aliases' => ['شاہ فیصل', 'Shah Faisal Town'], 'authority' => 'tmc_shah_faisal', 'district' => 'Korangi'],
+            ['name' => 'Model Colony', 'aliases' => ['ماڈل کالونی'], 'authority' => 'tmc_model_colony', 'district' => 'Korangi'],
+            ['name' => 'Malir Town', 'aliases' => ['Malik Town', 'ملیر', 'Malir'], 'authority' => 'tmc_malir', 'district' => 'Malir'],
+            ['name' => 'Gadap', 'aliases' => ['گڈاپ', 'Gadap Town'], 'authority' => 'tmc_gadap', 'district' => 'Malir'],
+            ['name' => 'Ibrahim Hyderi', 'aliases' => ['ابراہیم حیدری', 'Ibrahim Haidari'], 'authority' => 'tmc_ibrahim_hyderi', 'district' => 'Malir'],
+            ['name' => 'Bin Qasim', 'aliases' => ['بن قاسم', 'Bin Qasim Town', 'Port Qasim Town'], 'authority' => 'tmc_bin_qasim', 'district' => 'Malir'],
             // Clifton has no TMC of its own — non-override blocks fall through to KMC directly.
-            ['name' => 'Clifton', 'authority' => null, 'district' => 'South'],
+            ['name' => 'Clifton', 'aliases' => ['کلفٹن'], 'authority' => null, 'district' => 'South'],
         ];
 
         foreach ($towns as $town) {
@@ -216,16 +222,23 @@ class SumairSeeder extends Seeder
         ]);
 
         // DHA City — a separate scheme from DHA Phases 1-8, flagged for human review.
-        $this->node('DHA City', [
+        //
+        // The node name is deliberately longer than 'Cantonment Board Clifton'.
+        // CBC carries the aliases 'DHA' and 'DHA Karachi', both of which
+        // substring-match inside 'DHA City Karachi'. Both nodes are
+        // special_zone, so resolveLocation() breaks the tie on longest name —
+        // a shorter name here would silently route DHA City to CBC with high
+        // confidence, which is the exact mistake the source doc warns about.
+        $this->node('DHA City Karachi Super Highway Scheme', [
             'kind' => 'special_zone',
-            'aliases' => ['DHA City Karachi'],
+            'aliases' => ['DHA City Karachi', 'DHA City'],
             'needs_human_review' => true,
         ]);
 
-        $this->node('DHA City Sector 9', [
+        $this->node('DHA City Karachi Sector 9', [
             'kind' => 'landmark',
-            'aliases' => ['Sector 9 DHA City'],
-            'parent_id' => $this->nodeIds['DHA City'],
+            'aliases' => ['Sector 9 DHA City', 'DHA City Sector 9'],
+            'parent_id' => $this->nodeIds['DHA City Karachi Super Highway Scheme'],
         ]);
 
         $this->node('Saudabad', [
@@ -242,9 +255,23 @@ class SumairSeeder extends Seeder
             ['name' => 'North Nazimabad Block L', 'parent' => 'North Nazimabad'],
             ['name' => 'Gulshan-e-Iqbal Block 13-D', 'aliases' => ['Block 13-D Gulshan', 'Gulshan Block 13 D'], 'parent' => 'Gulshan-e-Iqbal'],
             ['name' => 'Gulshan-e-Iqbal Block 2', 'parent' => 'Gulshan-e-Iqbal'],
-            ['name' => 'Tariq Road', 'aliases' => ['Dolmen Tariq Road'], 'parent' => 'Jamshed'],
-            ['name' => 'Chakiwara', 'aliases' => ['چاکیواڑہ'], 'parent' => 'Lyari'],
-            ['name' => 'Baghdadi', 'parent' => 'Lyari'],
+            ['name' => 'Tariq Road', 'aliases' => ['Dolmen Tariq Road', 'طارق روڈ'], 'parent' => 'Jamshed'],
+
+            // Lyari — the source doc flags this as the top coverage priority:
+            // absent from v1, high complaint density, 11-13 UCs. These are the
+            // neighbourhood names residents actually use.
+            ['name' => 'Chakiwara', 'aliases' => ['چاکیواڑہ', 'Chakiwara Lyari'], 'parent' => 'Lyari'],
+            ['name' => 'Baghdadi', 'aliases' => ['بغدادی'], 'parent' => 'Lyari'],
+            ['name' => 'Kalri', 'aliases' => ['کھارادر کلری', 'Kalri Lyari'], 'parent' => 'Lyari'],
+            ['name' => 'Agra Taj Colony', 'aliases' => ['Agra Taj', 'آگرہ تاج'], 'parent' => 'Lyari'],
+            ['name' => 'Nawa Lane', 'aliases' => ['نوا لین', 'Nawalane'], 'parent' => 'Lyari'],
+            ['name' => 'Singo Lane', 'aliases' => ['سنگو لین'], 'parent' => 'Lyari'],
+            ['name' => 'Shah Beg Lane', 'aliases' => ['شاہ بیگ لین'], 'parent' => 'Lyari'],
+            ['name' => 'Rexer Lane', 'aliases' => ['ریکسر لین'], 'parent' => 'Lyari'],
+            ['name' => 'Bihar Colony', 'aliases' => ['بہار کالونی'], 'parent' => 'Lyari'],
+            ['name' => 'Kalakot', 'aliases' => ['کالاکوٹ'], 'parent' => 'Lyari'],
+            ['name' => 'Usmanabad', 'aliases' => ['عثمان آباد'], 'parent' => 'Lyari'],
+            ['name' => 'Gul Muhammad Lane', 'aliases' => ['گل محمد لین'], 'parent' => 'Lyari'],
             ['name' => 'Orangi Town Sector 11', 'aliases' => ['Sector 11 Orangi', 'Sector 11 1/2'], 'parent' => 'Orangi Town'],
             ['name' => 'Korangi Sector 33', 'aliases' => ['Sector 33 Korangi'], 'parent' => 'Korangi'],
             ['name' => 'Korangi Sector 31', 'parent' => 'Korangi'],
@@ -255,9 +282,21 @@ class SumairSeeder extends Seeder
             ['name' => 'Gadap Town Centre', 'parent' => 'Gadap'],
             ['name' => 'Ibrahim Hyderi Fish Harbour', 'parent' => 'Ibrahim Hyderi'],
             ['name' => 'Bin Qasim Town Centre', 'parent' => 'Bin Qasim'],
-            ['name' => 'SITE Area', 'parent' => 'SITE'],
+            ['name' => 'SITE Area', 'aliases' => ['سائٹ ایریا'], 'parent' => 'SITE'],
             ['name' => 'Baldia Town Centre', 'parent' => 'Baldia'],
-            ['name' => 'Keamari Fish Harbour', 'parent' => 'Keamari'],
+            ['name' => 'Saeedabad', 'aliases' => ['سعید آباد'], 'parent' => 'Baldia'],
+
+            // Keamari — the other town the source doc names as priority; it was
+            // also absent from v1 and had a single node before this pass.
+            ['name' => 'Keamari Fish Harbour', 'aliases' => ['Fish Harbour', 'مچھلی بندرگاہ'], 'parent' => 'Keamari'],
+            ['name' => 'Machar Colony', 'aliases' => ['مچھر کالونی', 'Machhar Colony'], 'parent' => 'Keamari'],
+            ['name' => 'Maripur', 'aliases' => ['ماڑی پور', 'Mauripur', 'Maripur Road'], 'parent' => 'Keamari'],
+            ['name' => 'Shershah', 'aliases' => ['شیرشاہ', 'Sher Shah'], 'parent' => 'Keamari'],
+            ['name' => 'Jackson Market', 'aliases' => ['جیکسن مارکیٹ', 'Jackson Bazaar'], 'parent' => 'Keamari'],
+            ['name' => 'Sultanabad', 'aliases' => ['سلطان آباد'], 'parent' => 'Keamari'],
+            ['name' => 'Baba Bhit', 'aliases' => ['بابا بھٹ', 'Baba Island'], 'parent' => 'Keamari'],
+            ['name' => 'Shams Pir', 'aliases' => ['شمس پیر'], 'parent' => 'Keamari'],
+            ['name' => 'Gabopat', 'aliases' => ['گابوپٹ'], 'parent' => 'Keamari'],
             ['name' => 'Manghopir Road', 'parent' => 'Manghopir'],
             ['name' => 'Mominabad Chowk', 'parent' => 'Mominabad'],
             ['name' => 'Liaquatabad No. 10', 'parent' => 'Liaquatabad'],
@@ -266,8 +305,21 @@ class SumairSeeder extends Seeder
             ['name' => 'Sohrab Goth Chowk', 'parent' => 'Sohrab Goth'],
             ['name' => 'Safoora Chowrangi', 'parent' => 'Safoora'],
             ['name' => 'Chanesar Goth', 'parent' => 'Chanesar'],
-            ['name' => 'Saddar Empress Market', 'aliases' => ['Empress Market'], 'parent' => 'Saddar'],
-            ['name' => 'Bahadurabad', 'parent' => 'Jamshed'],
+            ['name' => 'Saddar Empress Market', 'aliases' => ['Empress Market', 'ایمپریس مارکیٹ'], 'parent' => 'Saddar'],
+            ['name' => 'Bahadurabad', 'aliases' => ['بہادر آباد'], 'parent' => 'Jamshed'],
+
+            // The source doc lists SITE, Port and Steel Town alongside the six
+            // cantonments as special zones. They are landmarks here on purpose.
+            // A special_zone node only overrides anything if it carries a
+            // special_zone_authority_id, and there is no authority row for a
+            // port trust or a steel-mill township — applySpecialZoneOverride()
+            // would walk straight past them. SITE likewise stays a town so it
+            // keeps its correct tmc_site route. Adding the names as landmarks
+            // gets the resolver the match without asserting an override the
+            // data cannot back up.
+            ['name' => 'Karachi Port Trust', 'aliases' => ['KPT', 'Karachi Port', 'کراچی پورٹ'], 'parent' => 'Keamari'],
+            ['name' => 'Port Qasim', 'aliases' => ['Bin Qasim Port', 'پورٹ قاسم'], 'parent' => 'Bin Qasim'],
+            ['name' => 'Steel Town', 'aliases' => ['Pakistan Steel Town', 'اسٹیل ٹاؤن'], 'parent' => 'Bin Qasim'],
         ];
 
         foreach ($landmarks as $landmark) {
