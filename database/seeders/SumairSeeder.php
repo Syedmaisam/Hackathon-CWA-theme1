@@ -20,16 +20,21 @@ class SumairSeeder extends Seeder
 
     public function run(): void
     {
+        // is_admin gates the Filament panel. The citizen account below is the
+        // proof it was needed: before this flag it could sign straight into
+        // /admin and edit routing rules.
         User::query()->create([
             'name' => 'Admin',
             'email' => 'admin@cityaround.pk',
             'password' => bcrypt('password'),
+            'is_admin' => true,
         ]);
 
         User::query()->create([
             'name' => 'Citizen',
             'email' => 'citizen@cityaround.pk',
             'password' => bcrypt('password'),
+            'is_admin' => false,
         ]);
 
         $this->seedAuthorities();
