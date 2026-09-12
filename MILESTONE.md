@@ -152,12 +152,22 @@ textarea always works, so a failed mic costs nothing but the voice flourish.
   area" clusters by resolved area and flags low-confidence counts. "Routing health"
   shows totals, reports needing a human, and authorities lacking a citizen channel.
   Auto-discovered, so `AdminPanelProvider` was never edited and cannot conflict.
+- **The reports table reads as a triage screen.** The photo column was 14 empty squares,
+  because no report has a photo; it hides itself until one does. The two legitimately
+  blank areas now say "Not yet resolved" instead of rendering as missing data. Raw enum
+  columns are relabelled and the received time is a relative age with the exact timestamp
+  on hover. Sorting needed two attempts: plain newest-first pushed the DHA City case and
+  the AI failure onto page two, which is backwards for triage, so anything still needing
+  a human now floats to the top with newest first inside that.
 
 ---
 
 ## Priority order from here
 
 Work top down. Each item says who owns it and why it is worth the time.
+
+Sumair's admin lane is finished. Everything left below is either shared (rehearsal) or
+Maisam's, and item 2 is the only thing in the build that is actually broken.
 
 ### 1. Rehearse the demo — both, together, before anything else
 
@@ -174,30 +184,44 @@ draft. Rehearse it in Chrome with the microphone actually permitted, and agree a
 line in case the room's audio defeats it. Typing the same sentence loses nothing but the
 flourish.
 
-### 2. Label the blank area rows in the admin — Sumair
+### 2. The `pending` status renders a blank page — Maisam
 
-Two of the 14 reports have no resolved area and cluster under a blank row in the admin
-grouping and the widget. Both are correct: one is the vague Roman-Urdu report that is
-deliberately awaiting a clarifying answer, the other is the AI-failure demo that never
-ran the pipeline. The data is right, the presentation is not. A blank row reads as a bug
-to anyone watching. Give those rows a visible label such as "Location not yet resolved".
+**This is the only actual defect left in the build.** Verified by creating a report with
+status `pending` and loading its page: it returns HTTP 200 and renders the header, the
+chips and the raw text, then nothing at all. No draft, no routing, no explanation of what
+is happening. `Show.jsx` branches on four statuses — `awaiting_answer`, `ai_failed`,
+`needs_review`, `drafted` — and `pending` is not one of them, yet it is the column default
+and the value every report is created with in `store()`.
 
-### 3. Second pass on the admin against real data — Sumair
+Today the pipeline runs inline, so the window is milliseconds and the seeded data never
+sits in this state. It becomes reachable the moment any of these happens: the citizen
+refreshes during the AI call, the model save succeeds and the pipeline then throws before
+the catch writes `ai_failed`, or the queue stops being `sync`. A fallback branch saying the
+report is still being processed is a few lines, and it removes the only way to land a
+citizen on a dead page.
 
-Now unblocked, since Maisam's reports have landed. Load `/admin` and check the report
-list and view page against all 14. The infolist was polished before any real data
-existed, so this is the first time anyone has seen it populated.
+### 3. Loading feedback on the two follow-up forms — Maisam
 
-### 4. Empty and loading states on the citizen screens — Maisam
+The clarify form and the AI-failure category picker both re-run the pipeline, which makes
+a live DeepSeek call. Neither shows anything while that is in flight, so the citizen sees a
+frozen button for as long as the model takes. Both already expose Inertia's `processing`
+flag and neither uses it. The compose screen's typing indicator is the pattern to copy.
 
-Per the house rules every list needs an empty state and a `wire:loading` skeleton rather
-than a spinner. Worth a check on both pages before demo.
+Also worth a guard while in there: `draft_en` and `draft_ur` can be null on a report whose
+status is `drafted`. Copy and WhatsApp coalesce to an empty string, so a citizen can
+currently copy nothing and send an empty WhatsApp message.
+
+### 4. Watch a real AI failure once — both
+
+The AI-failure path is seeded and demos correctly, but nobody has watched what happens
+when DeepSeek actually times out live. The catch block sets `ai_failed`, so it should be
+graceful. One deliberate test with the network cut is worth more than reading the code.
 
 ### 5. Gazetteer depth beyond Lyari and Keamari — Sumair
 
 Diminishing returns now that the priority towns are covered. The structural gap is the
-union council tier, which the name graph skips entirely. Only worth starting if items 1
-through 4 are genuinely finished.
+union council tier, which the name graph skips entirely. Genuinely the biggest hole in the
+data and genuinely invisible in a demo. Leave it cut unless everything above is finished.
 
 ---
 
