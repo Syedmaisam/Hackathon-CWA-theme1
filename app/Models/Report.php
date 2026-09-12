@@ -212,8 +212,9 @@ class Report extends Model
         $flags = [...$flags, ...($rule->flags ?? [])];
 
         $primary = Authority::find($primaryAuthorityId);
+        $alreadyRecipient = collect($recipients)->pluck('authority_id')->contains('kmc');
 
-        if ($primary && ! $primary->citizen_visible) {
+        if ($primary && ! $primary->citizen_visible && ! $alreadyRecipient) {
             $recipients[] = [
                 'authority_id' => 'kmc',
                 'role' => 'escalation',

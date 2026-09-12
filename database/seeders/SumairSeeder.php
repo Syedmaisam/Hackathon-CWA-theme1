@@ -97,7 +97,7 @@ class SumairSeeder extends Seeder
     {
         $rules = [
             ['issue_type' => 'garbage', 'primary_authority_id' => 'sswmb', 'co_authority_ids' => [], 'internal_street_goes_to_tmc' => false, 'flags' => [], 'rule_note' => "Municipal garbage, overflowing bins, and illegal dumping go to SSWMB's 24/7 helpline 1128. If the location is inside a cantonment, that board's own sanitation service is the primary route instead."],
-            ['issue_type' => 'construction_debris', 'primary_authority_id' => 'kmc', 'co_authority_ids' => ['sbca'], 'internal_street_goes_to_tmc' => true, 'flags' => [], 'rule_note' => 'Malba and building material dumped on a road or footpath goes to KMC 1339, or the mapped TMC when it is an internal street. Never SSWMB — it has publicly stated debris is not its job. Co-route to SBCA when a builder or under-construction building is the source.'],
+            ['issue_type' => 'construction_debris', 'primary_authority_id' => 'kmc', 'co_authority_ids' => ['sbca'], 'internal_street_goes_to_tmc' => false, 'flags' => [], 'rule_note' => 'Malba and building material dumped on a road or footpath goes to KMC 1339. Never SSWMB — it has publicly stated debris is not its job. Co-route to SBCA when a builder or under-construction building is the source.'],
             ['issue_type' => 'sewer_overflow', 'primary_authority_id' => 'kwsc', 'co_authority_ids' => [], 'internal_street_goes_to_tmc' => false, 'flags' => [], 'rule_note' => 'Sewage overflow, choked sewers, and open manholes go to KWSC 1334. Include a photo and exact location. A visibly storm-water drain (not sewage) routes to KMC/TMC instead. Cantonments run their own sewerage.'],
             ['issue_type' => 'water_supply', 'primary_authority_id' => 'kwsc', 'co_authority_ids' => [], 'internal_street_goes_to_tmc' => false, 'flags' => [], 'rule_note' => 'Burst mains, leaks, no water, and low or dirty water pressure go to KWSC 1334. Cantonments run their own water supply and are routed there instead.'],
             ['issue_type' => 'tanker', 'primary_authority_id' => 'kwsc', 'co_authority_ids' => [], 'internal_street_goes_to_tmc' => false, 'flags' => [], 'rule_note' => 'Official tanker booking and tariff questions go through the KWSC Unified app or 1334. Always label official KWSC rates separately from private-market quotes.'],
@@ -268,6 +268,19 @@ class SumairSeeder extends Seeder
             ['name' => 'Chanesar Goth', 'parent' => 'Chanesar'],
             ['name' => 'Saddar Empress Market', 'aliases' => ['Empress Market'], 'parent' => 'Saddar'],
             ['name' => 'Bahadurabad', 'parent' => 'Jamshed'],
+
+            // Extra depth for Lyari and Keamari — highest priority per the
+            // source doc (highest complaint density / missing from v1).
+            ['name' => 'Kalakot', 'parent' => 'Lyari'],
+            ['name' => 'Agra Taj Colony', 'parent' => 'Lyari'],
+            ['name' => 'Bihar Colony', 'parent' => 'Lyari'],
+            ['name' => 'Mauripur', 'parent' => 'Keamari'],
+            ['name' => 'Native Jetty Bridge', 'parent' => 'Keamari'],
+            ['name' => 'Hawksbay', 'aliases' => ['Hawke\'s Bay'], 'parent' => 'Keamari'],
+            ['name' => 'Bin Qasim Sector 2', 'parent' => 'Bin Qasim'],
+            ['name' => 'Landhi Sector 7', 'parent' => 'Landhi'],
+            ['name' => 'Shah Faisal Sector 44', 'parent' => 'Shah Faisal'],
+            ['name' => 'Manzoor Colony', 'parent' => 'Model Colony'],
         ];
 
         foreach ($landmarks as $landmark) {
