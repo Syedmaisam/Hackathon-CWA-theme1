@@ -225,6 +225,71 @@ appear on real hardware. That is the one check left, and it is in `PWA.md`.
 
 ---
 
+## Handoff — 12 Sep, evening (Maisam → Sumair's laptop)
+
+Everything below this heading is the state at the moment work moved off Maisam's laptop.
+`master` is pushed; nothing is uncommitted. Last commits: `fac4888` (unverified TMC
+contacts shown, labelled), `0e9486e` (milestone), `e75cf09` (merge of Sumair's PWA work
+with the town/UC picker), `babe80f` (picker + dataset v2 + cantonments/DHA removed).
+
+### First thing on the new machine
+
+```
+git pull
+npm install                      # Sumair added vite-plugin-pwa
+npm run build
+php artisan migrate:fresh --seed # new migration + 157 UCs + rewritten demo reports
+composer run dev
+```
+
+Reseeding matters: the last laptop had 22 reports from testing and seeded row #9 (the
+Roman-Urdu clarifying question) had already been answered. A fresh seed restores every
+demo state. The AI file cache is *not* on the new machine — warm it (see item 3).
+
+### Remaining — code
+
+1. **Reset / "start over" button on the report page** (Maisam's lane, ~10 min, not started).
+   Ask: a visible button that takes the citizen back to `/` with a full reload so the
+   compose form is empty. Today there is only the header back-arrow (Inertia `Link`,
+   keeps React state) and a small "Report something else" link at the bottom of
+   `Show.jsx`. Suggested: a "New report" button in the `header` block of `Show.jsx`
+   next to the back arrow, `onClick={() => window.location.assign('/')}`; make the
+   back arrow do the same. No PHP.
+2. **Cache-poisoning on empty model output** (Maisam's lane, ~5 min, optional but cheap).
+   `ReportController::runPipeline` wraps the classify call in `Cache::remember` for 7
+   days. DeepSeek occasionally returns empty content; that empty array gets cached and
+   the exact same input then fails for a week. Fix: inside the closure, throw if
+   `issue_type` is missing so nothing is cached and the catch block sends it to
+   `ai_failed`. Same for the draft closure (`body_en`).
+3. **KMC's unverified email now renders** as a side effect of `fac4888` — KMC's phone is
+   verified so the row carries no "unverified" label, but `mayor@kmc.gos.pk` has
+   `email_verified = false`. Either verify it in `SumairSeeder` or accept it. The mailto
+   send button already ignores unverified emails.
+
+### Remaining — not code
+
+4. **Rehearse** using the deck: https://claude.ai/code/artifact/3cacdd6b-41a2-42ae-9717-dd9648e96fa0
+   (demo script, judge Q&A with answers, admin walkthrough, pre-demo checklist).
+5. **Warm the cache** on the demo machine by submitting each demo input once live:
+   pothole @ Disco Bakery; `gali mein pani khara hai 2 din se` @ Gulshan-e-Ghazi and its
+   answer `gutter ka pani hai`; sewage on Frere Road @ Saddar. Repeat runs are then
+   instant regardless of wifi.
+6. **Phone check**: open `/` on a real phone once — the picker dropdown opens upward
+   above the composer and was only checked in headless Chrome at 400 px.
+7. **Voice demo** needs Chrome (Web Speech API).
+
+### Decisions to remember when a judge asks
+
+- Cantonments and DHA are **out of scope on purpose**; the override mechanism is still in
+  `Report::applySpecialZoneOverride()`, only the data was removed.
+- Location comes from the picker only. Free text never chooses the authority.
+- UC lists exist for 16 of 27 towns; Saddar, Jamshed, Jinnah and Bin Qasim were dropped
+  because the source file had copy-pasted lists under them.
+- TMC contacts from the v2 directory are **unverified** and labelled as such; KMC 1339 is
+  added as escalation whenever the primary has no verified channel.
+
+---
+
 ## Priority order from here
 
 Work top down. Each item says who owns it and why it is worth the time.
