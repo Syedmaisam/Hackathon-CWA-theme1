@@ -33,6 +33,18 @@ class GazetteerNodeForm
                         TextInput::make('district'),
                     ]),
 
+                Section::make('Union council')
+                    ->description('Set uc_code to make a landmark node a union council. The compose screen lists every town and every UC. Chairman contacts are personal numbers from the source dataset — admin-only, never shown to citizens.')
+                    ->schema([
+                        TextInput::make('uc_code')
+                            ->label('UC code')
+                            ->placeholder('UC-04'),
+                        TextInput::make('contact_name')
+                            ->label('Chairman / vice chairman'),
+                        TextInput::make('contact_phone')
+                            ->label('Contact number'),
+                    ]),
+
                 Section::make('Routing')
                     ->description('Special-zone authority beats the district hierarchy and is evaluated first. Needs-human-review beats both.')
                     ->schema([

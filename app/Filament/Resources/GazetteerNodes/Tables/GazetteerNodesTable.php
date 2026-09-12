@@ -19,6 +19,10 @@ class GazetteerNodesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('uc_code')
+                    ->label('UC')
+                    ->placeholder('—')
+                    ->searchable(),
                 TextColumn::make('kind')
                     ->badge(),
                 TextColumn::make('parent.name')
@@ -35,6 +39,14 @@ class GazetteerNodesTable
                     ->label('Special Zone Authority')
                     ->placeholder('—')
                     ->searchable(),
+                TextColumn::make('contact_name')
+                    ->label('UC contact')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('contact_phone')
+                    ->label('UC phone')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('needs_human_review')
                     ->icon(fn (bool $state): Heroicon => $state ? Heroicon::OutlinedExclamationTriangle : Heroicon::OutlinedCheckCircle)
                     ->color(fn (bool $state): string => $state ? 'danger' : 'success'),
@@ -52,7 +64,6 @@ class GazetteerNodesTable
                     ->options([
                         'district' => 'District',
                         'town' => 'Town',
-                        'special_zone' => 'Special zone',
                         'landmark' => 'Landmark',
                     ]),
             ])

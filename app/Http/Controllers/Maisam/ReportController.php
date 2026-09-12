@@ -6,11 +6,13 @@ use App\Ai\Agents\ClassifyReport;
 use App\Ai\Agents\DraftComplaint;
 use App\Http\Controllers\Controller;
 use App\Models\Authority;
+use App\Models\GazetteerNode;
 use App\Models\Report;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Ai\Files;
@@ -26,7 +28,9 @@ class ReportController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Maisam/Report/Create');
+        return Inertia::render('Maisam/Report/Create', [
+            'places' => $this->places(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -37,13 +41,26 @@ class ReportController extends Controller
             'citizen_phone' => ['nullable', 'string', 'max:50'],
             'input_mode' => ['nullable', 'string', 'in:text,voice,photo'],
             'photo' => ['nullable', 'image', 'max:8192'],
+            'gazetteer_node_id' => ['required', 'integer', 'exists:gazetteer_nodes,id'],
+        ], [
+            'gazetteer_node_id.*' => 'Pick your town or union council from the list.',
         ]);
+
+        // Only what the picker offers: a TMC town or a union council. A
+        // district or plain landmark id would route to nothing useful.
+        $node = GazetteerNode::query()->find($validated['gazetteer_node_id']);
+
+        if (! $node || ! ($node->uc_code || ($node->kind === 'town' && $node->tmc_authority_id))) {
+            throw ValidationException::withMessages([
+                'gazetteer_node_id' => 'Pick your town or union council from the list.',
+            ]);
+        }
 
         $photoPath = $request->hasFile('photo')
             ? $request->file('photo')->store('reports', 'public')
             : null;
 
-        $report = Report::query()->create([
+        $report = new Report([
             'citizen_name' => $validated['citizen_name'] ?? null,
             'citizen_phone' => $validated['citizen_phone'] ?? null,
             'input_mode' => $validated['input_mode'] ?? ($photoPath ? 'photo' : 'text'),
@@ -51,6 +68,8 @@ class ReportController extends Controller
             'photo_path' => $photoPath,
             'status' => 'pending',
         ]);
+        $report->assignNode($node);
+        $report->save();
 
         $this->runPipeline($report, $request->file('photo'));
 
@@ -71,6 +90,7 @@ class ReportController extends Controller
                 'hazards' => $report->hazards ?? [],
                 'location_text' => $report->location_text,
                 'resolved_area' => $report->resolved_area,
+                'location_label' => $this->locationLabel($report),
                 'status' => $report->status,
                 'routing_confidence' => $report->routing_confidence,
                 'routing_flags' => $report->routing_flags ?? [],
@@ -105,7 +125,11 @@ class ReportController extends Controller
         ]);
 
         $report->issue_type = $validated['issue_type'];
-        $report->resolveLocation();
+
+        if (! $report->gazetteer_node_id) {
+            $report->resolveLocation();
+        }
+
         $override = $report->applySpecialZoneOverride();
         $report->routing = $report->applyRoutingRule($override);
         $report->routing_confidence = $report->scoreConfidence($override);
@@ -135,9 +159,13 @@ class ReportController extends Controller
                 $attachments[] = Files\Image::fromStorage($report->photo_path, disk: 'public');
             }
 
-            $textForClassification = trim($report->raw_text.($report->clarifying_answer
-                ? "\n\nAdditional detail from the citizen: {$report->clarifying_answer}"
-                : ''));
+            // The picked town/UC leads so the model normalises road and
+            // landmark spellings against the right part of the city.
+            $textForClassification = trim(implode("\n\n", array_filter([
+                $this->locationLabel($report) ? 'Citizen selected location: '.$this->locationLabel($report) : null,
+                $report->raw_text,
+                $report->clarifying_answer ? "Additional detail from the citizen: {$report->clarifying_answer}" : null,
+            ])));
 
             $cacheKey = 'ai:classify:'.sha1($textForClassification.($report->photo_path ?? ''));
 
@@ -155,7 +183,12 @@ class ReportController extends Controller
             $report->location_text = collect($classification['location'] ?? [])->filter()->implode(', ');
             $report->clarifying_question = $classification['clarifying_question'] ?? null;
 
-            $report->resolveLocation();
+            // Reports created through the compose screen already carry the
+            // picked node; the free-text resolver only runs for rows without one.
+            if (! $report->gazetteer_node_id) {
+                $report->resolveLocation();
+            }
+
             $override = $report->applySpecialZoneOverride();
             $report->routing = $report->applyRoutingRule($override);
             $report->routing_confidence = $report->scoreConfidence($override);
@@ -195,7 +228,7 @@ class ReportController extends Controller
         $prompt = implode("\n", [
             'Classified issue: '.$report->issue_type,
             'Severity: '.$report->severity,
-            'Location: '.($report->location_text ?: 'not provided'),
+            'Location: '.(implode(' — ', array_filter([$this->locationLabel($report), $report->location_text])) ?: 'not provided'),
             'Observed since: '.($report->classification['observed_when'] ?? 'unknown'),
             'Hazards: '.implode(', ', $report->hazards ?: []),
             'Recipients (name, role, reason): '.json_encode($recipients),
@@ -217,6 +250,60 @@ class ReportController extends Controller
         $report->requested_remedy = $draft['requested_remedy'];
         $report->status = 'drafted';
         $report->save();
+    }
+
+    /**
+     * Human-readable place for the node the citizen picked: a UC reads as
+     * "Disco Bakery, Gulshan-e-Iqbal, District East", a town as
+     * "Gulshan-e-Iqbal, District East".
+     */
+    private function locationLabel(Report $report): ?string
+    {
+        $node = $report->gazetteerNode;
+
+        if (! $node) {
+            return $report->resolved_area;
+        }
+
+        $town = $node->uc_code ? $node->parent : $node;
+
+        return implode(', ', array_filter([
+            $node->name,
+            $node->uc_code ? $town?->name : null,
+            $town?->district ? "District {$town->district}" : null,
+        ]));
+    }
+
+    /**
+     * Everything the compose screen's place picker can offer: TMC towns and
+     * union councils. ~185 rows, filtered client-side.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function places(): array
+    {
+        return GazetteerNode::query()
+            ->with('parent')
+            ->where(fn ($query) => $query
+                ->whereNotNull('uc_code')
+                ->orWhere(fn ($q) => $q->where('kind', 'town')->whereNotNull('tmc_authority_id')))
+            ->orderBy('name')
+            ->get()
+            ->map(function (GazetteerNode $node) {
+                $town = $node->uc_code ? $node->parent : $node;
+
+                return [
+                    'id' => $node->id,
+                    'kind' => $node->uc_code ? 'uc' : 'town',
+                    'name' => $node->name,
+                    'uc_code' => $node->uc_code,
+                    'aliases' => $node->aliases ?? [],
+                    'town' => $town?->name,
+                    'district' => $town?->district,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

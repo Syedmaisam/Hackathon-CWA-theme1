@@ -77,6 +77,16 @@ class Report extends Model
             return;
         }
 
+        $this->assignNode($node);
+    }
+
+    /**
+     * Pin the report to a gazetteer node — the town or UC the citizen picked
+     * on the compose screen, or the resolver's best match — and denormalise
+     * the owning town into resolved_area for grouping.
+     */
+    public function assignNode(GazetteerNode $node): void
+    {
         $this->gazetteer_node_id = $node->id;
 
         $town = $node;

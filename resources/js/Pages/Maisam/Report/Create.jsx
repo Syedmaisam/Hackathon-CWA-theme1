@@ -1,6 +1,7 @@
 import { useForm, Head, Link } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import PlacePicker, { placeLabel } from '@/Components/PlacePicker';
 import VoiceNoteInput from '@/Components/VoiceNoteInput';
 
 const STEPS = ['Reading your report', 'Finding who owns this', 'Writing the complaint'];
@@ -27,15 +28,19 @@ function SaidToYou({ children }) {
     );
 }
 
-export default function Create() {
+export default function Create({ places }) {
     const { data, setData, post, processing, errors } = useForm({
         raw_text: '',
         citizen_name: '',
         citizen_phone: '',
         input_mode: 'text',
         photo: null,
+        gazetteer_node_id: null,
     });
 
+    // The picked town/UC object, kept alongside the id the form posts so the
+    // chip and the in-flight bubble can show its name.
+    const [place, setPlace] = useState(null);
     const [photoPreview, setPhotoPreview] = useState(null);
     const [showContact, setShowContact] = useState(false);
     const [step, setStep] = useState(0);
@@ -102,10 +107,15 @@ export default function Create() {
         element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
     }
 
+    function pickPlace(next) {
+        setPlace(next);
+        setData('gazetteer_node_id', next?.id ?? null);
+    }
+
     function submit(e) {
         e?.preventDefault();
 
-        if (!data.raw_text.trim() || processing) {
+        if (!data.raw_text.trim() || !data.gazetteer_node_id || processing) {
             return;
         }
 
@@ -122,7 +132,7 @@ export default function Create() {
         }
     }
 
-    const canSend = data.raw_text.trim().length > 0 && !processing;
+    const canSend = data.raw_text.trim().length > 0 && data.gazetteer_node_id !== null && !processing;
 
     return (
         <AppLayout bare>
@@ -145,9 +155,9 @@ export default function Create() {
                     <SaidToYou>
                         <p className="font-medium text-stone-900">What&apos;s broken near you?</p>
                         <p className="mt-1 text-stone-600">
-                            Describe it in your own words — English, Urdu, or a mix. Send a photo or a voice
-                            note if that&apos;s easier. We&apos;ll work out who&apos;s responsible and write
-                            the complaint for you.
+                            Pick your town or union council, then describe it in your own words — English,
+                            Urdu, or a mix. Send a photo or a voice note if that&apos;s easier. We&apos;ll
+                            work out who&apos;s responsible and write the complaint for you.
                         </p>
                     </SaidToYou>
 
@@ -193,6 +203,11 @@ export default function Create() {
                                     className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent-600 px-4 py-3 text-sm whitespace-pre-wrap text-white shadow-sm sm:max-w-[75%]"
                                 >
                                     {data.raw_text}
+                                    {place && (
+                                        <span dir="ltr" className="mt-2 block text-xs text-white/80">
+                                            📍 {placeLabel(place)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -211,8 +226,10 @@ export default function Create() {
                         </>
                     )}
 
-                    {errors.raw_text && (
-                        <p className="text-center text-sm text-red-600">{errors.raw_text}</p>
+                    {(errors.raw_text || errors.gazetteer_node_id) && (
+                        <p className="text-center text-sm text-red-600">
+                            {errors.gazetteer_node_id ?? errors.raw_text}
+                        </p>
                     )}
                 </div>
             </div>
@@ -220,6 +237,10 @@ export default function Create() {
             {!processing && (
                 <div className="shrink-0 border-t border-stone-200 bg-white px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     <form onSubmit={submit} className="mx-auto max-w-2xl">
+                        <div className="mb-2">
+                            <PlacePicker places={places} value={place} onChange={pickPlace} disabled={processing} />
+                        </div>
+
                         <div className="flex items-end gap-2">
                             <input
                                 ref={fileInput}

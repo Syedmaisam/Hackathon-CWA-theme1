@@ -8,8 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'name', 'aliases', 'kind', 'parent_id', 'district',
+    'name', 'aliases', 'kind', 'uc_code', 'parent_id', 'district',
     'tmc_authority_id', 'special_zone_authority_id', 'needs_human_review',
+    'contact_name', 'contact_phone',
 ])]
 class GazetteerNode extends Model
 {

@@ -193,7 +193,6 @@ export default function Show({ report, routing, issueTypes }) {
     const [copied, setCopied] = useState(false);
 
     const draft = (locale === 'en' ? report.draft_en : report.draft_ur)?.trim() || null;
-    const hasOverride = report.routing_flags?.includes('special_zone_override');
     const hasUnverified = routing.some((r) => r.contact_unverified);
     const verifiedEmail = routing.find((r) => r.email)?.email;
     const isProcessing = !SETTLED_STATUSES.includes(report.status);
@@ -249,7 +248,9 @@ export default function Show({ report, routing, issueTypes }) {
                     {(report.hazards ?? []).map((hazard) => (
                         <Chip key={hazard}>{hazard.replaceAll('_', ' ')}</Chip>
                     ))}
-                    {report.resolved_area && <Chip>📍 {report.resolved_area}</Chip>}
+                    {(report.location_label || report.resolved_area) && (
+                        <Chip>📍 {report.location_label ?? report.resolved_area}</Chip>
+                    )}
                     {report.input_mode === 'voice' && <Chip>🎙 voice</Chip>}
                 </div>
             </div>
@@ -271,8 +272,7 @@ export default function Show({ report, routing, issueTypes }) {
                                 <p className="font-medium">A person needs to check this one</p>
                                 <p className="mt-1">
                                     Jurisdiction here is genuinely disputed, so we would rather say so than
-                                    guess and send your complaint to the wrong office. DHA City, for example,
-                                    is a separate scheme from DHA Phases 1 to 8. We have logged it, and
+                                    guess and send your complaint to the wrong office. We have logged it, and
                                     suggest filing through the{' '}
                                     <span className="font-medium">Pakistan Citizen Portal</span> meanwhile.
                                 </p>
@@ -316,13 +316,6 @@ export default function Show({ report, routing, issueTypes }) {
                                     </span>
                                 )}
                             </div>
-
-                            {hasOverride && (
-                                <p className="mt-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-800">
-                                    Inside a cantonment / DHA special zone — this overrides the usual district
-                                    routing.
-                                </p>
-                            )}
 
                             <ul className="mt-4 space-y-4">
                                 {routing.map((r, i) => (

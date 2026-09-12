@@ -12,49 +12,50 @@ class MaisamSeeder extends Seeder
     /**
      * 14 demo reports with AI fields pre-filled, so the hero screens and the
      * Filament admin have real data to show even with the network down.
-     * Every visual state is represented: drafted, awaiting_answer,
-     * needs_review, and ai_failed.
+     * Every reachable visual state is represented: drafted, awaiting_answer,
+     * and ai_failed. Every row carries a picked gazetteer node, as the
+     * compose screen now requires.
      */
     public function run(): void
     {
         $this->report(2, [
-            'raw_text' => 'Sewage overflowing on Khayaban-e-Shahbaz, DHA Phase 6, since Sunday.',
+            'raw_text' => 'Sewage overflowing on Frere Road near Empress Market, Saddar, since Sunday.',
             'classification' => [
                 'issue_type' => 'sewer_overflow', 'issue_confidence' => 'high', 'road_scope' => 'arterial',
                 'severity' => 'high', 'hazards' => ['health_risk', 'traffic_blocked'], 'input_language' => 'en',
-                'location' => ['landmark' => null, 'road' => 'Khayaban-e-Shahbaz', 'block_or_sector' => 'DHA Phase 6', 'area' => 'DHA Phase 6', 'cantonment_or_estate' => 'DHA'],
+                'location' => ['landmark' => 'Empress Market', 'road' => 'Frere Road', 'block_or_sector' => null, 'area' => 'Saddar', 'cantonment_or_estate' => null],
                 'observed_when' => 'since Sunday', 'photo_matches_text' => null,
-                'summary_en' => 'Sewage is overflowing onto Khayaban-e-Shahbaz in DHA Phase 6, reported since Sunday.',
+                'summary_en' => 'Sewage is overflowing onto Frere Road near Empress Market in Saddar, reported since Sunday.',
                 'clarifying_question' => null,
             ],
             'issue_type' => 'sewer_overflow', 'severity' => 'high', 'hazards' => ['health_risk', 'traffic_blocked'],
-            'input_language' => 'en', 'location_text' => 'Khayaban-e-Shahbaz, DHA Phase 6, DHA',
-            'gazetteer_node' => 'DHA Phase 6', 'resolved_area' => 'Cantonment Board Clifton', 'resolved_special_zone' => 'cb_clifton',
-            'routing' => [['authority_id' => 'cb_clifton', 'role' => 'primary', 'reason' => 'Location resolves inside a special zone, which overrides district routing.', 'rule' => 'special_zone_override']],
-            'routing_confidence' => 'high', 'routing_flags' => ['special_zone_override'],
+            'input_language' => 'en', 'location_text' => 'Empress Market, Frere Road, Saddar',
+            'gazetteer_node' => 'Saddar', 'resolved_area' => 'Saddar', 'resolved_special_zone' => null,
+            'routing' => [['authority_id' => 'kwsc', 'role' => 'primary', 'reason' => 'Sewage overflow, choked sewers, and open manholes go to KWSC 1334. Include a photo and exact location. A visibly storm-water drain (not sewage) routes to KMC/TMC instead.', 'rule' => 'sewer_overflow']],
+            'routing_confidence' => 'high', 'routing_flags' => [],
             'requested_remedy' => 'clear_sewer', 'status' => 'drafted',
-            'draft_en' => "To: Cantonment Board Clifton\n\nSubject: Sewage overflow on Khayaban-e-Shahbaz, DHA Phase 6\n\nSewage has been overflowing onto Khayaban-e-Shahbaz in DHA Phase 6 since Sunday, creating a health hazard and partially blocking traffic. As this location falls under Cantonment Board Clifton's municipal jurisdiction, I am reporting it here rather than to KWSC.\n\nRequested action: clear the blocked sewer line and restore normal drainage.\n\nPlease provide a complaint reference number and the expected resolution time.",
-            'draft_ur' => "بنام: کینٹونمنٹ بورڈ کلفٹن\n\nموضوع: خیابان شہباز، ڈی ایچ اے فیز 6 میں گٹر کا پانی ابل رہا ہے\n\nاتوار سے خیابان شہباز، ڈی ایچ اے فیز 6 پر گٹر کا پانی ابل رہا ہے جس سے صحت کے خطرات اور ٹریفک میں رکاوٹ پیدا ہو رہی ہے۔ چونکہ یہ علاقہ کینٹونمنٹ بورڈ کلفٹن کی حدود میں آتا ہے، اس لیے یہ شکایت یہاں درج کی جا رہی ہے۔\n\nمطلوبہ کارروائی: بند گٹر لائن کو صاف کر کے نکاسی آب بحال کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
+            'draft_en' => "To: Karachi Water & Sewerage Corporation\n\nSubject: Sewage overflow on Frere Road near Empress Market, Saddar\n\nSewage has been overflowing onto Frere Road near Empress Market in Saddar since Sunday, creating a health hazard and partially blocking traffic on a busy market road.\n\nRequested action: clear the blocked sewer line and restore normal drainage.\n\nPlease provide a complaint reference number and the expected resolution time.",
+            'draft_ur' => "بنام: کراچی واٹر اینڈ سیوریج کارپوریشن\n\nموضوع: فریئر روڈ، ایمپریس مارکیٹ کے قریب، صدر میں گٹر کا پانی ابل رہا ہے\n\nاتوار سے فریئر روڈ پر ایمپریس مارکیٹ کے قریب گٹر کا پانی ابل رہا ہے جس سے صحت کے خطرات اور ایک مصروف بازار کی سڑک پر ٹریفک میں رکاوٹ پیدا ہو رہی ہے۔\n\nمطلوبہ کارروائی: بند گٹر لائن کو صاف کر کے نکاسی آب بحال کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
         ]);
 
         $this->report(5, [
-            'raw_text' => 'Street light dead outside Malir Cantt gate, Saudabad side.',
+            'raw_text' => 'Street light dead on the main road in Saudabad, Malir, near the TMC office.',
             'classification' => [
-                'issue_type' => 'streetlight', 'issue_confidence' => 'high', 'road_scope' => 'internal_street',
+                'issue_type' => 'streetlight', 'issue_confidence' => 'high', 'road_scope' => 'arterial',
                 'severity' => 'medium', 'hazards' => [], 'input_language' => 'en',
-                'location' => ['landmark' => 'Malir Cantt gate', 'road' => null, 'block_or_sector' => null, 'area' => 'Saudabad', 'cantonment_or_estate' => 'Malir Cantt'],
+                'location' => ['landmark' => 'TMC Malir office', 'road' => null, 'block_or_sector' => null, 'area' => 'Saudabad', 'cantonment_or_estate' => null],
                 'observed_when' => null, 'photo_matches_text' => null,
-                'summary_en' => 'A street light is not working outside the Malir Cantt gate on the Saudabad side.',
+                'summary_en' => 'A street light on the main road in Saudabad, Malir, near the TMC office is not working.',
                 'clarifying_question' => null,
             ],
             'issue_type' => 'streetlight', 'severity' => 'medium', 'hazards' => [],
-            'input_language' => 'en', 'location_text' => 'Malir Cantt gate, Saudabad, Malir Cantt',
-            'gazetteer_node' => 'Saudabad', 'resolved_area' => 'Malir Cantonment', 'resolved_special_zone' => 'cb_malir',
-            'routing' => [['authority_id' => 'cb_malir', 'role' => 'primary', 'reason' => 'Location resolves inside a special zone, which overrides district routing.', 'rule' => 'special_zone_override']],
-            'routing_confidence' => 'high', 'routing_flags' => ['special_zone_override'],
+            'input_language' => 'en', 'location_text' => 'TMC Malir office, Saudabad',
+            'gazetteer_node' => 'Saudabad', 'resolved_area' => 'Malir Town', 'resolved_special_zone' => null,
+            'routing' => [['authority_id' => 'kmc', 'role' => 'primary', 'reason' => 'A dead street light is publicly documented as a KMC 1339 issue, not K-Electric. K-Electric only handles supply-side faults.', 'rule' => 'streetlight']],
+            'routing_confidence' => 'high', 'routing_flags' => [],
             'requested_remedy' => 'repair_streetlight', 'status' => 'drafted',
-            'draft_en' => "To: Cantonment Board Malir\n\nSubject: Street light outage near Malir Cantt gate, Saudabad\n\nThe street light outside the Malir Cantt gate on the Saudabad side is not working, leaving the area dark at night. This location falls under Cantonment Board Malir's own lighting network rather than KMC.\n\nRequested action: repair or replace the street light.\n\nPlease provide a complaint reference number and the expected resolution time.",
-            'draft_ur' => "بنام: کینٹونمنٹ بورڈ ملیر\n\nموضوع: ملیر کینٹ گیٹ، سوداباد کے قریب اسٹریٹ لائٹ خراب\n\nملیر کینٹ گیٹ کے سوداباد جانب والی اسٹریٹ لائٹ کام نہیں کر رہی، جس کی وجہ سے رات کو یہ جگہ اندھیرے میں رہتی ہے۔ یہ علاقہ کینٹونمنٹ بورڈ ملیر کے اپنے بجلی کے نظام کے تحت آتا ہے۔\n\nمطلوبہ کارروائی: اسٹریٹ لائٹ کی مرمت یا تبدیلی کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
+            'draft_en' => "To: Karachi Metropolitan Corporation\n\nSubject: Street light outage on the main road, Saudabad, Malir\n\nThe street light on the main road in Saudabad, Malir, near the TMC Malir office is not working, leaving the stretch dark at night.\n\nRequested action: repair or replace the street light.\n\nPlease provide a complaint reference number and the expected resolution time.",
+            'draft_ur' => "بنام: کراچی میٹروپولیٹن کارپوریشن\n\nموضوع: سعود آباد، ملیر کی مرکزی سڑک پر اسٹریٹ لائٹ خراب\n\nسعود آباد، ملیر میں ٹی ایم سی ملیر کے دفتر کے قریب مرکزی سڑک کی اسٹریٹ لائٹ کام نہیں کر رہی، جس کی وجہ سے رات کو یہ حصہ اندھیرے میں رہتا ہے۔\n\nمطلوبہ کارروائی: اسٹریٹ لائٹ کی مرمت یا تبدیلی کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
         ]);
 
         $this->report(7, [
@@ -156,7 +157,7 @@ class MaisamSeeder extends Seeder
             ],
             'issue_type' => 'road_damage', 'severity' => 'medium', 'hazards' => ['traffic_blocked'],
             'input_language' => 'en', 'location_text' => 'Gujjar Nala, Nazimabad No. 2',
-            'gazetteer_node' => 'Nazimabad No. 2', 'resolved_area' => 'Nazimabad', 'resolved_special_zone' => null,
+            'gazetteer_node' => 'Nazimabad No.1 Near Agha Juice Center', 'resolved_area' => 'Nazimabad', 'resolved_special_zone' => null,
             'routing' => [
                 ['authority_id' => 'tmc_nazimabad', 'role' => 'primary', 'reason' => 'Potholes and damaged local streets go to the mapped TMC.', 'rule' => 'road_damage'],
                 ['authority_id' => 'kmc', 'role' => 'co_recipient', 'reason' => 'Potholes and damaged local streets go to the mapped TMC.', 'rule' => 'road_damage'],
@@ -190,45 +191,47 @@ class MaisamSeeder extends Seeder
         $this->report(6, [
             'raw_text' => 'gali mein pani khara hai 2 din se, pata nahi kis se bolein',
             'classification' => [
-                'issue_type' => 'storm_drain', 'issue_confidence' => 'medium', 'road_scope' => 'not_applicable',
+                'issue_type' => 'unknown', 'issue_confidence' => 'low', 'road_scope' => 'internal_street',
                 'severity' => 'medium', 'hazards' => [], 'input_language' => 'roman_urdu',
-                'location' => ['landmark' => null, 'road' => null, 'block_or_sector' => null, 'area' => null, 'cantonment_or_estate' => null],
+                'location' => ['landmark' => null, 'road' => null, 'block_or_sector' => null, 'area' => 'Gulshan-e-Ghazi', 'cantonment_or_estate' => null],
                 'observed_when' => 'two days', 'photo_matches_text' => null,
-                'summary_en' => 'Standing water in a street for two days; exact location not given.',
-                'clarifying_question' => 'Which area, road, or nearby landmark is this street in?',
+                'summary_en' => 'Standing water in a street in Gulshan-e-Ghazi, Baldia, for two days; source of the water not stated.',
+                'clarifying_question' => 'Yeh pani gutter ka hai, pipeline leak ka, ya barish ka?',
             ],
-            'issue_type' => 'storm_drain', 'severity' => 'medium', 'hazards' => [],
-            'input_language' => 'roman_urdu', 'location_text' => '',
-            'gazetteer_node' => null, 'resolved_area' => null, 'resolved_special_zone' => null,
-            'routing' => [['authority_id' => 'kmc', 'role' => 'primary', 'reason' => 'Blocked storm-water drains and nullah flooding go to KMC first.', 'rule' => 'storm_drain']],
-            'routing_confidence' => 'low', 'routing_flags' => ['multi_agency_possible'],
-            'clarifying_question' => 'Which area, road, or nearby landmark is this street in?',
+            'issue_type' => 'unknown', 'severity' => 'medium', 'hazards' => [],
+            'input_language' => 'roman_urdu', 'location_text' => 'Gulshan-e-Ghazi',
+            'gazetteer_node' => 'Gulshan-e-Ghazi', 'resolved_area' => 'Baldia', 'resolved_special_zone' => null,
+            'routing' => [['authority_id' => 'pmdu', 'role' => 'primary', 'reason' => "When the report is unresolvable, ask one clarifying question first. If it's still unclear, fall back to the Pakistan Citizen Portal rather than silently dropping the report.", 'rule' => 'unknown']],
+            'routing_confidence' => 'low', 'routing_flags' => [],
+            'clarifying_question' => 'Yeh pani gutter ka hai, pipeline leak ka, ya barish ka?',
             'requested_remedy' => null, 'status' => 'awaiting_answer', 'draft_en' => null, 'draft_ur' => null,
         ]);
 
         $this->report(9, [
-            'raw_text' => 'No water for a week now, DHA City sector 9, near the Super Highway.',
+            'raw_text' => 'No water for a week now in Khuda Ki Basti, Manghopir. Tankers are charging double.',
             'classification' => [
                 'issue_type' => 'water_supply', 'issue_confidence' => 'high', 'road_scope' => 'not_applicable',
                 'severity' => 'high', 'hazards' => ['health_risk'], 'input_language' => 'en',
-                'location' => ['landmark' => 'Super Highway', 'road' => null, 'block_or_sector' => 'Sector 9', 'area' => 'DHA City', 'cantonment_or_estate' => 'DHA City'],
+                'location' => ['landmark' => null, 'road' => null, 'block_or_sector' => null, 'area' => 'Khuda Ki Basti', 'cantonment_or_estate' => null],
                 'observed_when' => 'a week', 'photo_matches_text' => null,
-                'summary_en' => 'No water supply for a week in DHA City Sector 9 near the Super Highway.',
+                'summary_en' => 'No piped water supply for a week in Khuda Ki Basti, Manghopir.',
                 'clarifying_question' => null,
             ],
             'issue_type' => 'water_supply', 'severity' => 'high', 'hazards' => ['health_risk'],
-            'input_language' => 'en', 'location_text' => 'Super Highway, Sector 9, DHA City',
-            'gazetteer_node' => 'DHA City Sector 9', 'resolved_area' => 'DHA City', 'resolved_special_zone' => null,
-            'routing' => [['authority_id' => 'pmdu', 'role' => 'primary', 'reason' => 'Location needs human review before routing (e.g. DHA City is a separate scheme).', 'rule' => 'needs_human_review']],
-            'routing_confidence' => 'needs_human_review', 'routing_flags' => ['needs_human_review'],
-            'requested_remedy' => null, 'status' => 'needs_review', 'draft_en' => null, 'draft_ur' => null,
+            'input_language' => 'en', 'location_text' => 'Khuda Ki Basti',
+            'gazetteer_node' => 'Khuda Ki Basti', 'resolved_area' => 'Manghopir', 'resolved_special_zone' => null,
+            'routing' => [['authority_id' => 'kwsc', 'role' => 'primary', 'reason' => 'Burst mains, leaks, no water, and low or dirty water pressure go to KWSC 1334.', 'rule' => 'water_supply']],
+            'routing_confidence' => 'high', 'routing_flags' => [],
+            'requested_remedy' => 'restore_supply', 'status' => 'drafted',
+            'draft_en' => "To: Karachi Water & Sewerage Corporation\n\nSubject: No water supply for a week, Khuda Ki Basti (UC-09), Manghopir\n\nThere has been no piped water in Khuda Ki Basti, Manghopir, for a week. Households are relying on private tankers, which are charging double the usual rate.\n\nRequested action: restore the piped supply and check the line feeding this UC.\n\nPlease provide a complaint reference number and the expected resolution time.",
+            'draft_ur' => "بنام: کراچی واٹر اینڈ سیوریج کارپوریشن\n\nموضوع: خدا کی بستی (یو سی 9)، منگھوپیر میں ایک ہفتے سے پانی بند\n\nخدا کی بستی، منگھوپیر میں ایک ہفتے سے لائن کا پانی نہیں آ رہا۔ گھرانے نجی ٹینکروں پر انحصار کر رہے ہیں جو دگنی قیمت وصول کر رہے ہیں۔\n\nمطلوبہ کارروائی: لائن کا پانی بحال کیا جائے اور اس یو سی کو پانی دینے والی لائن کی جانچ کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
         ]);
 
         $this->report(12, [
             'raw_text' => 'Garbage piling up badly in Orangi Town Sector 11½, nobody has collected it in over a week.',
             'classification' => null, 'issue_type' => null, 'severity' => null, 'hazards' => null,
             'input_language' => null, 'location_text' => null,
-            'gazetteer_node' => null, 'resolved_area' => null, 'resolved_special_zone' => null,
+            'gazetteer_node' => 'Orangi Town Sector 11', 'resolved_area' => 'Orangi Town', 'resolved_special_zone' => null,
             'routing' => null, 'routing_confidence' => null, 'routing_flags' => null,
             'requested_remedy' => 'other', 'status' => 'ai_failed', 'ai_failed' => true,
             'draft_en' => "To: Sindh Solid Waste Management Board\n\nIssue: garbage\n\nLocation: Orangi Town Sector 11½\n\nObserved since: unknown\n\nDetails: Garbage piling up badly in Orangi Town Sector 11½, nobody has collected it in over a week.\n\nPlease provide a complaint reference number and expected resolution time.",
@@ -247,12 +250,12 @@ class MaisamSeeder extends Seeder
             ],
             'issue_type' => 'storm_drain', 'severity' => 'medium', 'hazards' => ['flooding'],
             'input_language' => 'en', 'location_text' => 'Boat Basin, Block 2, Clifton',
-            'gazetteer_node' => 'Clifton Block 2', 'resolved_area' => 'Clifton', 'resolved_special_zone' => null,
+            'gazetteer_node' => 'Clifton Block 2', 'resolved_area' => 'Saddar', 'resolved_special_zone' => null,
             'routing' => [['authority_id' => 'kmc', 'role' => 'primary', 'reason' => 'Blocked storm-water drains and nullah flooding go to KMC first.', 'rule' => 'storm_drain']],
             'routing_confidence' => 'high', 'routing_flags' => ['multi_agency_possible'],
             'requested_remedy' => 'clear_drain', 'status' => 'drafted',
-            'draft_en' => "To: Karachi Metropolitan Corporation\n\nSubject: Storm drain completely choked near Boat Basin, Clifton Block 2\n\nThe storm-water drain near Boat Basin in Clifton Block 2 is completely choked and no longer draining. Note: this block of Clifton is not covered by Cantonment Board Clifton, so this complaint is addressed to KMC.\n\nRequested action: desilt and clear the drain.\n\nPlease provide a complaint reference number and the expected resolution time.",
-            'draft_ur' => "بنام: کراچی میٹروپولیٹن کارپوریشن\n\nموضوع: بوٹ بیسن، کلفٹن بلاک 2 کے قریب طوفانی نالہ مکمل بند\n\nبوٹ بیسن، کلفٹن بلاک 2 کے قریب طوفانی نالہ مکمل طور پر بند ہو چکا ہے اور پانی نکاسی نہیں ہو رہی۔ نوٹ: کلفٹن کا یہ بلاک کینٹونمنٹ بورڈ کلفٹن کی حدود میں نہیں آتا، اس لیے یہ شکایت کے ایم سی کو بھیجی جا رہی ہے۔\n\nمطلوبہ کارروائی: نالے کی صفائی کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
+            'draft_en' => "To: Karachi Metropolitan Corporation\n\nSubject: Storm drain completely choked near Boat Basin, Clifton Block 2\n\nThe storm-water drain near Boat Basin in Clifton Block 2 is completely choked and no longer draining.\n\nRequested action: desilt and clear the drain.\n\nPlease provide a complaint reference number and the expected resolution time.",
+            'draft_ur' => "بنام: کراچی میٹروپولیٹن کارپوریشن\n\nموضوع: بوٹ بیسن، کلفٹن بلاک 2 کے قریب طوفانی نالہ مکمل بند\n\nبوٹ بیسن، کلفٹن بلاک 2 کے قریب طوفانی نالہ مکمل طور پر بند ہو چکا ہے اور پانی نکاسی نہیں ہو رہی۔\n\nمطلوبہ کارروائی: نالے کی صفائی کی جائے۔\n\nبراہ کرم شکایت نمبر اور متوقع حل کا وقت فراہم کریں۔",
         ]);
 
         $this->report(1, [

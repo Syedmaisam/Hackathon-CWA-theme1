@@ -60,19 +60,20 @@ class ClassifyReport implements Agent, HasProviderOptions, HasStructuredOutput
         hazards: any of child_risk, traffic_blocked, exposed_wire, flooding, health_risk,
         fire_risk, structural_collapse that plainly apply. Return an empty array if none do.
 
-        location: extract landmark, road, block_or_sector, area (neighbourhood/town as the
-        citizen said it, with spelling normalised to English), and cantonment_or_estate (only
-        if the citizen explicitly said a cantonment, "DHA", "Defence", or a named estate).
-        Leave any field null rather than guessing. For orientation only, common Karachi
-        top-level places include: the seven districts (South, East, Central, West, Korangi,
-        Malir, Keamari); the six cantonment boards (Clifton, Karachi, Faisal, Malir, Korangi
-        Creek, Manora); "DHA Phase 1" through "DHA Phase 8"; "Clifton Block 1" through
-        "Clifton Block 9"; and well-known towns such as Nazimabad, North Nazimabad, Gulshan-e-
-        Iqbal, Orangi, Lyari, Korangi, Malir, and Landhi. Use this list only to normalise
-        spelling — never to decide an authority.
+        The report starts with "Citizen selected location:" — the town or union council the
+        citizen picked from a list. Treat it as correct. location: extract landmark, road,
+        block_or_sector, and area (neighbourhood as the citizen said it, spelling normalised
+        to English) from the report text itself; leave cantonment_or_estate null. Leave any
+        field null rather than guessing. For orientation only, Karachi's districts are South,
+        East, Central, West, Korangi, Malir and Keamari, and its towns include Saddar, Lyari,
+        Jamshed, Gulshan-e-Iqbal, Nazimabad, North Nazimabad, Liaquatabad, Gulberg, New
+        Karachi, Orangi, Mominabad, Manghopir, Keamari, SITE, Baldia, Korangi, Landhi, Shah
+        Faisal, Model Colony, Malir, Gadap, Ibrahim Hyderi and Bin Qasim. Use this only to
+        normalise spelling — never to decide an authority.
 
-        Ask exactly ONE clarifying_question, and only when the issue type or the location is
-        genuinely too vague to act on (e.g. no location at all). Otherwise leave it null.
+        Ask exactly ONE clarifying_question, and only when the issue type is genuinely too
+        vague to act on. Never ask about the location — the citizen has already given it.
+        Otherwise leave clarifying_question null.
 
         Respond only with the requested structured fields.
         TEXT;
