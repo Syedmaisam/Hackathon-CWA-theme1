@@ -155,6 +155,7 @@ export default function PlacePicker({ places, value, onChange, disabled = false 
                 aria-activedescendant={showList && results[active] ? `${listId}-${results[active].id}` : undefined}
                 aria-autocomplete="list"
                 autoComplete="off"
+                spellCheck={false}
                 value={query}
                 disabled={disabled}
                 onChange={(e) => {

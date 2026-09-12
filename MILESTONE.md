@@ -170,14 +170,68 @@ textarea always works, so a failed mic costs nothing but the voice flourish.
   the AI failure onto page two, which is backwards for triage, so anything still needing
   a human now floats to the top with newest first inside that.
 
+### PWA and mobile UI — built by Sumair, crossing into Maisam's lane again
+
+**Maisam: three of your files changed again. Presentation only, no props, no data flow,
+no PHP.** Full detail in `PWA.md`; the short version is here.
+
+The app is now an installable progressive web app with an app shell and bottom navigation,
+because roughly 70% of traffic will be on a phone and the site read as a website on one.
+
+- **Installable.** Manifest, service worker with an offline shell, generated icons in
+  maskable and standard variants, apple-touch-icon, and a real favicon replacing the
+  zero-byte placeholder. An install prompt appears once and remembers being dismissed.
+- **App shell.** `AppLayout` is a fixed-height flex column where only the content region
+  scrolls, which removes rubber-band overscroll and address-bar jank. It takes `header`,
+  `footer` and `padded` props. **The `bare` prop is gone** — every screen uses the shell.
+- **Bottom navigation.** Two tabs, Report and Help. A report page keeps the Report tab lit.
+- **Every emoji is now an inline SVG icon.** Twelve of them, in a new `Icon.jsx`. Emoji
+  render as a different picture per platform and ignore `currentColor`, so they could
+  never take the active or disabled state of the control holding them.
+- **New Help screen** at `/help`, Sumair's lane, one closure route in `routes/sumair.php`.
+  `routes/web.php` untouched.
+- **The report screen is a single column** with grouped sections, a back arrow in a real
+  app header, and the WhatsApp action pinned above the tab bar instead of below a scroll.
+
+**Items 2 and 3 were fixed twice, in parallel.** Sumair and Maisam both closed the
+`pending` blank page and the loading states without knowing the other was working on it —
+the cost of crossing lanes under time pressure. **Maisam's version won the merge**, and
+his is the one described under items 2 and 3 below. It is better on every overlapping
+point: an allowlist of settled statuses rather than a hardcoded `pending` check, so no
+future status can blank the page; `usePoll` so the citizen is carried to the result
+instead of being told to refresh; and a trimmed, null-coalesced draft that made a separate
+`hasDraft` flag redundant.
+
+What survived from the PWA side is layout only: the grouped sections, the icons, and the
+send actions pinned in the footer rather than inline under the draft.
+
+**Avoiding the next one:** say in this file which item you are starting before you start
+it. Both fixes took under an hour, so the waste was small, but the merge was not free.
+
+**Two latent bugs were found and fixed while in there.** Neither was visible as a failure:
+
+- `env(safe-area-inset-bottom)` was already used by the composer but the viewport meta
+  lacked `viewport-fit=cover`, so it resolved to zero on every notched iPhone.
+- The `pulse` keyframe was never emitted into the built CSS. The built stylesheet had zero
+  `@keyframes` rules, so the typing indicator and the voice recording dot had never
+  animated. Defined explicitly in `app.css` now.
+
+Shared files touched: `app.blade.php`, `package.json`, `vite.config.js`, `app.css`,
+`.gitignore`. One package installed with Sumair's approval, `vite-plugin-pwa`.
+
+**Not verified:** installing to a real Android phone, offline behaviour, and the install
+prompt firing. Standalone mode, safe-area insets and the theme-coloured status bar only
+appear on real hardware. That is the one check left, and it is in `PWA.md`.
+
 ---
 
 ## Priority order from here
 
 Work top down. Each item says who owns it and why it is worth the time.
 
-Sumair's admin lane is finished. Everything left below is either shared (rehearsal) or
-Maisam's, and item 2 is the only thing in the build that is actually broken.
+Sumair's admin lane is finished. **Items 2 and 3 below are now done**, fixed during the
+PWA pass described above; they are kept here with their original wording so the history
+is legible. Nothing in the build is known to be broken.
 
 ### 1. Rehearse the demo — both, together, before anything else
 

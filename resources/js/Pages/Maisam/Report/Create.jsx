@@ -1,8 +1,9 @@
-import { useForm, Head, Link } from '@inertiajs/react';
+import { useForm, Head } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import PlacePicker, { placeLabel } from '@/Components/PlacePicker';
 import VoiceNoteInput from '@/Components/VoiceNoteInput';
+import Icon, { AppMark } from '@/Components/Icon';
 
 const STEPS = ['Reading your report', 'Finding who owns this', 'Writing the complaint'];
 
@@ -134,23 +135,107 @@ export default function Create({ places }) {
 
     const canSend = data.raw_text.trim().length > 0 && data.gazetteer_node_id !== null && !processing;
 
+    const header = (
+        <header className="flex shrink-0 items-center gap-3 border-b border-stone-200 bg-white px-4 py-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-600 text-white">
+                <AppMark className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-stone-900">The City Around You</p>
+                <p className="truncate text-xs text-stone-500">
+                    {processing ? 'typing…' : 'Karachi civic reporting'}
+                </p>
+            </div>
+        </header>
+    );
+
+    const composer = !processing && (
+        <div className="shrink-0 border-t border-stone-200 bg-white px-3 py-3">
+            <form onSubmit={submit} className="mx-auto max-w-2xl">
+                <div className="mb-2">
+                    <PlacePicker places={places} value={place} onChange={pickPlace} disabled={processing} />
+                </div>
+
+                <div className="flex items-end gap-2">
+                    <input
+                        ref={fileInput}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => pickPhoto(e.target.files?.[0])}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInput.current?.click()}
+                        aria-label="Attach a photo"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100"
+                    >
+                        <Icon name="paper-clip" className="h-5 w-5" />
+                    </button>
+
+                    <textarea
+                        ref={textarea}
+                        value={data.raw_text}
+                        onChange={(e) => {
+                            setData('raw_text', e.target.value);
+                            grow(e.target);
+                        }}
+                        onKeyDown={onKeyDown}
+                        rows={1}
+                        dir={isUrdu(data.raw_text) ? 'rtl' : 'ltr'}
+                        placeholder="Describe the problem…"
+                        className="max-h-40 min-h-11 flex-1 resize-none rounded-2xl bg-stone-100 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
+                    />
+
+                    <button
+                        type="submit"
+                        disabled={!canSend}
+                        aria-label="Send report"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-600 text-white transition hover:bg-accent-700 disabled:opacity-30"
+                    >
+                        <Icon name="send" className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                    <VoiceNoteInput onTranscript={appendTranscript} disabled={processing} compact />
+
+                    <button
+                        type="button"
+                        onClick={() => setShowContact((v) => !v)}
+                        className="text-xs text-stone-500 underline-offset-2 hover:underline"
+                    >
+                        {showContact ? 'Hide contact details' : 'Add your name or phone (optional)'}
+                    </button>
+                </div>
+
+                {showContact && (
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <input
+                            type="text"
+                            value={data.citizen_name}
+                            onChange={(e) => setData('citizen_name', e.target.value)}
+                            placeholder="Your name"
+                            className="min-h-11 rounded-xl bg-stone-100 px-4 text-base focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
+                        />
+                        <input
+                            type="tel"
+                            value={data.citizen_phone}
+                            onChange={(e) => setData('citizen_phone', e.target.value)}
+                            placeholder="Phone (shared only if you add it)"
+                            className="min-h-11 rounded-xl bg-stone-100 px-4 text-base focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
+                        />
+                    </div>
+                )}
+            </form>
+        </div>
+    );
+
     return (
-        <AppLayout bare>
+        <AppLayout header={header} footer={composer} padded={false}>
             <Head title="Report a problem" />
 
-            <header className="flex shrink-0 items-center gap-3 border-b border-stone-200 bg-white px-4 py-3">
-                <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-600 text-base text-white">
-                    🏙
-                </Link>
-                <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-stone-900">The City Around You</p>
-                    <p className="truncate text-xs text-stone-500">
-                        {processing ? 'typing…' : 'Karachi civic reporting'}
-                    </p>
-                </div>
-            </header>
-
-            <div ref={thread} className="flex-1 overflow-y-auto px-4 py-4">
+            <div ref={thread} className="h-full overflow-y-auto overscroll-contain px-4 py-4">
                 <div className="mx-auto max-w-2xl space-y-3">
                     <SaidToYou>
                         <p className="font-medium text-stone-900">What&apos;s broken near you?</p>
@@ -187,9 +272,9 @@ export default function Create({ places }) {
                                     type="button"
                                     onClick={clearPhoto}
                                     aria-label="Remove photo"
-                                    className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-stone-900/60 text-sm text-white"
+                                    className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-stone-900/60 text-white"
                                 >
-                                    ✕
+                                    <Icon name="x-mark" className="h-4 w-4" strokeWidth={2} />
                                 </button>
                             </div>
                         </div>
@@ -233,90 +318,6 @@ export default function Create({ places }) {
                     )}
                 </div>
             </div>
-
-            {!processing && (
-                <div className="shrink-0 border-t border-stone-200 bg-white px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                    <form onSubmit={submit} className="mx-auto max-w-2xl">
-                        <div className="mb-2">
-                            <PlacePicker places={places} value={place} onChange={pickPlace} disabled={processing} />
-                        </div>
-
-                        <div className="flex items-end gap-2">
-                            <input
-                                ref={fileInput}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => pickPhoto(e.target.files?.[0])}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => fileInput.current?.click()}
-                                aria-label="Attach a photo"
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg text-stone-500 transition hover:bg-stone-100"
-                            >
-                                📎
-                            </button>
-
-                            <textarea
-                                ref={textarea}
-                                value={data.raw_text}
-                                onChange={(e) => {
-                                    setData('raw_text', e.target.value);
-                                    grow(e.target);
-                                }}
-                                onKeyDown={onKeyDown}
-                                rows={1}
-                                dir={isUrdu(data.raw_text) ? 'rtl' : 'ltr'}
-                                placeholder="Describe the problem…"
-                                className="max-h-40 min-h-11 flex-1 resize-none rounded-2xl bg-stone-100 px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
-                            />
-
-                            <button
-                                type="submit"
-                                disabled={!canSend}
-                                aria-label="Send report"
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-600 text-white transition hover:bg-accent-700 disabled:opacity-30"
-                            >
-                                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-                                    <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                            <VoiceNoteInput onTranscript={appendTranscript} disabled={processing} compact />
-
-                            <button
-                                type="button"
-                                onClick={() => setShowContact((v) => !v)}
-                                className="text-xs text-stone-500 underline-offset-2 hover:underline"
-                            >
-                                {showContact ? 'Hide contact details' : 'Add your name or phone (optional)'}
-                            </button>
-                        </div>
-
-                        {showContact && (
-                            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <input
-                                    type="text"
-                                    value={data.citizen_name}
-                                    onChange={(e) => setData('citizen_name', e.target.value)}
-                                    placeholder="Your name"
-                                    className="min-h-11 rounded-xl bg-stone-100 px-4 text-base focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
-                                />
-                                <input
-                                    type="tel"
-                                    value={data.citizen_phone}
-                                    onChange={(e) => setData('citizen_phone', e.target.value)}
-                                    placeholder="Phone (shared only if you add it)"
-                                    className="min-h-11 rounded-xl bg-stone-100 px-4 text-base focus:bg-white focus:ring-1 focus:ring-accent-600 focus:outline-none"
-                                />
-                            </div>
-                        )}
-                    </form>
-                </div>
-            )}
         </AppLayout>
     );
 }
