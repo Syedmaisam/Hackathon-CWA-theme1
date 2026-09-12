@@ -152,6 +152,16 @@ textarea always works, so a failed mic costs nothing but the voice flourish.
   area" clusters by resolved area and flags low-confidence counts. "Routing health"
   shows totals, reports needing a human, and authorities lacking a citizen channel.
   Auto-discovered, so `AdminPanelProvider` was never edited and cannot conflict.
+- **Filament panel gated behind `is_admin`.** The panel had no `canAccessPanel` check, so
+  authorisation rested entirely on there being exactly one user. The seeded citizen account
+  proved the hole: it could sign into `/admin` and edit routing rules or delete reports.
+  Verified fixed, admin 200 and citizen 403. This had to land before any citizen
+  registration, which is what would have turned a latent hole into an open door.
+- **The report screen reads as a conversation.** It was a stack of grey cards with no
+  sentence anywhere saying who the complaint was routed to, which is the entire product
+  promise. The report now renders as the message you sent and the routing as the reply,
+  matching the compose screen, with an outcome headline above it and a way back to file
+  another. The needs-review state got the same treatment since it is the DHA City case.
 - **The reports table reads as a triage screen.** The photo column was 14 empty squares,
   because no report has a photo; it hides itself until one does. The two legitimately
   blank areas now say "Not yet resolved" instead of rendering as missing data. Raw enum
@@ -222,6 +232,81 @@ graceful. One deliberate test with the network cut is worth more than reading th
 Diminishing returns now that the priority towns are covered. The structural gap is the
 union council tier, which the name graph skips entirely. Genuinely the biggest hole in the
 data and genuinely invisible in a demo. Leave it cut unless everything above is finished.
+
+---
+
+## Phase 2 — citizen accounts and complaint history
+
+Requested by Sumair. **Maisam leads this after pulling**, because three of the four pieces
+are in his lane. Read the dependency note before starting.
+
+### Read this first
+
+**Do not start this before the demo.** There is no auth scaffolding in the app at all: no
+Breeze, no Fortify, no login route. The users table exists only because Laravel ships it.
+Registration, login, logout, a history screen, a status update, plus a schema change and
+matching seeder, is realistically two to three hours. It also adds a login wall in front of
+the one story that wins this brief, which is a complaint being routed correctly.
+
+**The security prerequisite is already done.** The Filament panel had no `canAccessPanel`
+check, so authorisation rested entirely on there being one user. The seeded citizen account
+could sign straight into `/admin` and edit routing rules. That is fixed and verified: admin
+gets 200, citizen gets 403. Had registration shipped first, every citizen would have had
+admin. Do not remove the `is_admin` gate.
+
+### Milestone A — auth scaffolding (Sumair's lane, ~45 min)
+
+Install Laravel Breeze with the React stack, matching the existing Inertia setup. **Needs
+Sumair's approval first, since the house rules forbid installing a Composer package without
+asking.** It generates register, login, logout and password reset into a new `Pages/Auth`
+directory that collides with nothing either developer owns.
+
+Guests must keep being able to file a complaint. Anonymous reporting is the product; an
+account is an optional upgrade for people who want their history.
+
+### Milestone B — report ownership (Maisam's lane, ~20 min) — BLOCKS C, D, E
+
+One nullable `user_id` on `reports`, and `store()` attaches `auth()->id()` when signed in.
+
+Nullable is the important part. All 14 seeded reports predate accounts and must stay valid,
+and guests must keep filing. A non-nullable column breaks both. Per the house rules the
+seeder update ships in the same commit, since the other developer recovers with
+`migrate:fresh --seed`.
+
+### Milestone C — complaint history (Maisam's lane, ~40 min)
+
+A "My complaints" screen listing the signed-in user's reports with status, area and date,
+each linking into the existing detail page. This is the feature Sumair actually asked for.
+The report screen is already a chat surface, so a list of past conversations fits the shape.
+
+### Milestone D — citizen status update (Maisam's lane, ~30 min)
+
+Let the citizen say whether the routing worked: resolved, no response yet, wrong authority.
+
+**This needs a product decision before any code.** The existing `status` column tracks
+pipeline state (`pending`, `drafted`, `ai_failed`), not real-world outcome. Overloading it
+would corrupt the admin triage sort and both dashboard widgets, which read that column. Add
+a separate `citizen_outcome` column instead.
+
+The "wrong authority" answer is the valuable one: it is real feedback on routing quality,
+and it is exactly what the gazetteer and routing rules need to improve.
+
+### Milestone E — admin view of accounts (Sumair's lane, ~20 min)
+
+A Filament users resource with a relation manager showing each account's reports. Easy once
+B exists, and worth nothing before it.
+
+### Dependency summary
+
+| Milestone | Lane | Blocked by |
+|---|---|---|
+| A — auth scaffolding | Sumair | approval to install Breeze |
+| B — `user_id` on reports | **Maisam** | A |
+| C — history screen | **Maisam** | B |
+| D — citizen outcome | **Maisam** | B, plus the column decision |
+| E — admin users resource | Sumair | B |
+
+Everything except A and E is Maisam's. This cannot be built from Sumair's side alone.
 
 ---
 
