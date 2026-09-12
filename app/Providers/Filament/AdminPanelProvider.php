@@ -30,8 +30,10 @@ class AdminPanelProvider extends PanelProvider
             // Set here rather than via APP_NAME because .env is not committed,
             // so the brand would revert on the other developer's machine.
             ->brandName('The City Around You')
+            // Teal, matching --color-accent-500 in app.css, so the admin and
+            // the citizen app read as one product rather than two.
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Teal,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
