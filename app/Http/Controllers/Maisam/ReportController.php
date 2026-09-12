@@ -144,7 +144,7 @@ class ReportController extends Controller
             $classification = Cache::remember(
                 $cacheKey,
                 now()->addDays(7),
-                fn () => (new ClassifyReport)->prompt($textForClassification, attachments: $attachments)->toArray(),
+                fn () => (new ClassifyReport)->prompt($textForClassification, attachments: $attachments, timeout: 25)->toArray(),
             );
 
             $report->classification = $classification;
@@ -209,7 +209,7 @@ class ReportController extends Controller
         $draft = Cache::remember(
             $cacheKey,
             now()->addDays(7),
-            fn () => (new DraftComplaint)->prompt($prompt)->toArray(),
+            fn () => (new DraftComplaint)->prompt($prompt, timeout: 40)->toArray(),
         );
 
         $report->draft_en = $draft['body_en'];

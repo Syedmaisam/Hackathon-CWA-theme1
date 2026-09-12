@@ -194,38 +194,71 @@ draft. Rehearse it in Chrome with the microphone actually permitted, and agree a
 line in case the room's audio defeats it. Typing the same sentence loses nothing but the
 flourish.
 
-### 2. The `pending` status renders a blank page — Maisam
+### 2. ~~The `pending` status renders a blank page~~ — DONE (Maisam, 12 Sep)
 
-**This is the only actual defect left in the build.** Verified by creating a report with
-status `pending` and loading its page: it returns HTTP 200 and renders the header, the
-chips and the raw text, then nothing at all. No draft, no routing, no explanation of what
-is happening. `Show.jsx` branches on four statuses — `awaiting_answer`, `ai_failed`,
-`needs_review`, `drafted` — and `pending` is not one of them, yet it is the column default
-and the value every report is created with in `store()`.
+Was the only actual defect in the build. `Show.jsx` branched on four statuses and
+`pending` — the column default and what `store()` creates every report with — was not
+one of them, so a refresh mid-pipeline, a throw between the save and the catch, or a
+non-sync queue landed the citizen on a page with chips and nothing under them.
 
-Today the pipeline runs inline, so the window is milliseconds and the seeded data never
-sits in this state. It becomes reachable the moment any of these happens: the citizen
-refreshes during the AI call, the model save succeeds and the pipeline then throws before
-the catch writes `ai_failed`, or the queue stops being `sync`. A fallback branch saying the
-report is still being processed is a few lines, and it removes the only way to land a
-citizen on a dead page.
+What changed, all in `Pages/Maisam/Report/Show.jsx`, no PHP:
 
-### 3. Loading feedback on the two follow-up forms — Maisam
+- Any status outside `awaiting_answer` / `ai_failed` / `needs_review` / `drafted` now
+  renders a "Still working on your report…" reply bubble using the compose screen's
+  typing-indicator look. That covers `pending` and any status added later, so a new
+  status can never blank the page again.
+- While in that state the page polls itself every 3 s with Inertia's `usePoll` (partial
+  reload of `report` + `routing`) and stops the moment the status settles, so the citizen
+  is carried to the routed result without refreshing. Settled reports never start the poll.
 
-The clarify form and the AI-failure category picker both re-run the pipeline, which makes
-a live DeepSeek call. Neither shows anything while that is in flight, so the citizen sees a
-frozen button for as long as the model takes. Both already expose Inertia's `processing`
-flag and neither uses it. The compose screen's typing indicator is the pattern to copy.
+Verified by exercising it: created a `pending` report, served the app, rendered the page
+in headless Chrome — the bubble shows and the server log records repeated partial reloads
+of that report; a seeded drafted report is fetched once and never polled. Set the same
+row to a made-up status `queued` and it fell through to the same bubble. Test row deleted,
+database back to the seeded 14.
 
-Also worth a guard while in there: `draft_en` and `draft_ur` can be null on a report whose
-status is `drafted`. Copy and WhatsApp coalesce to an empty string, so a citizen can
-currently copy nothing and send an empty WhatsApp message.
+### 3. ~~Loading feedback on the two follow-up forms~~ — DONE (Maisam, 12 Sep)
 
-### 4. Watch a real AI failure once — both
+Both forms re-run the pipeline with a live DeepSeek call and showed only a greyed button
+while it ran. Again `Show.jsx` only, no PHP:
 
-The AI-failure path is seeded and demos correctly, but nobody has watched what happens
-when DeepSeek actually times out live. The catch block sets `ai_failed`, so it should be
-graceful. One deliberate test with the network cut is worth more than reading the code.
+- While `processing`, the clarify form is replaced by the citizen's answer as a sent bubble
+  and the typing indicator ("Thanks — routing it now…"); the category picker does the same
+  with the chosen category ("Routing your complaint…"). Same `StillProcessing` bubble as
+  the pending state, so all three waits on this screen look identical to the compose screen.
+- Null-draft guard: the draft is trimmed and coalesced to null; when the selected language
+  has no draft the pane says so and points at the other tab, WhatsApp loses its `href` and
+  goes `aria-disabled`, Copy is disabled, and Email is hidden. Nothing can send an empty
+  message any more.
+
+Verified by driving headless Chrome over the DevTools protocol against throwaway clones of
+the awaiting-answer, AI-failed and drafted seeds: both in-flight states were captured mid
+request, the clarify clone settled to a routed KWSC draft after a real model call, the
+category clone settled to SSWMB, and the drafted clone with `draft_en` nulled showed the
+disabled actions in English and a real `wa.me` link in Urdu. Clones deleted afterwards.
+
+### 4. ~~Watch a real AI failure once~~ — DONE (Maisam, 12 Sep)
+
+Drove the real `store()` three times with the DeepSeek config overridden at runtime
+(no `.env` or `config/` edit), fresh text each time so the cache could not mask it:
+
+| Failure | What happened | Time to `ai_failed` |
+|---|---|---|
+| Bad API key (401) | caught, logged, category picker | 0.7 s |
+| Unroutable host | `ProviderConnectionException`, same path | 10.1 s (connect timeout) |
+| Host accepts, never replies | same path | **25 s** — was 60 s |
+
+The third row is the realistic conference-wifi failure and it exposed a gap: the SDK's
+per-call default is 60 s and the controller passed no timeout, so a stalled model meant up
+to two minutes of typing indicator before the fallback fired. `ReportController` now
+passes `timeout: 25` on classify and `timeout: 40` on draft, the values in the original
+plan. Happy path re-checked live afterwards: a new Nazimabad pothole report classified,
+resolved and drafted in both languages in 6.9 s. Drill rows deleted, database back to 14.
+
+Reseed note: Maisam's DB had 104 gazetteer nodes against the seeder's 123 — it was behind
+Sumair's last seeder commit. `migrate:fresh --seed` brought it to 123/41/13/14 and the
+Lyari, Keamari, DHA City and DHA Phase 6 cases all resolve correctly. After pulling any
+seeder change, reseed; the file cache survives it.
 
 ### 5. Gazetteer depth beyond Lyari and Keamari — Sumair
 

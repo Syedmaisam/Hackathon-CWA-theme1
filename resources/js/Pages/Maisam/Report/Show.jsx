@@ -1,6 +1,11 @@
-import { useForm, Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useForm, Head, Link, usePoll } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+
+// Every status the page knows how to render. Anything else — `pending`, or a
+// status added later — is treated as "still being worked on" rather than
+// rendering an empty page under the chips.
+const SETTLED_STATUSES = ['awaiting_answer', 'ai_failed', 'needs_review', 'drafted'];
 
 const CONFIDENCE_STYLE = {
     high: 'bg-emerald-100 text-emerald-800',
@@ -41,12 +46,40 @@ function Chip({ children }) {
     );
 }
 
+/** The citizen's follow-up, shown as an outgoing bubble while it is being processed. */
+function SentByYou({ children }) {
+    return (
+        <div className="flex justify-end">
+            <div
+                dir={isUrdu(children) ? 'rtl' : 'ltr'}
+                className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent-600 px-4 py-3 text-sm whitespace-pre-wrap text-white shadow-sm sm:max-w-[75%]"
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
 function ClarifyForm({ report }) {
     const { data, setData, post, processing, errors } = useForm({ answer: '' });
 
     function submit(e) {
         e.preventDefault();
         post(`/reports/${report.id}/clarify`);
+    }
+
+    // The clarify round trip re-runs the whole pipeline, including a live
+    // model call, so the wait is seconds rather than milliseconds.
+    if (processing) {
+        return (
+            <div className="space-y-3">
+                <SentByYou>{data.answer}</SentByYou>
+                <StillProcessing
+                    caption="Thanks — routing it now…"
+                    detail="We're re-reading your report with that detail, finding who owns this, and writing the complaint."
+                />
+            </div>
+        );
     }
 
     return (
@@ -76,12 +109,52 @@ function ClarifyForm({ report }) {
     );
 }
 
+/**
+ * The compose screen's typing indicator, as the reply bubble on this screen.
+ * Shown while the pipeline is still running so a refresh mid-call, an async
+ * queue, or a crash between save and catch never lands on a dead page.
+ */
+function StillProcessing({
+    caption = 'Still working on your report…',
+    detail = "We're reading it, finding who owns this, and writing the complaint. This page updates by itself — no need to refresh.",
+}) {
+    return (
+        <div className="flex">
+            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm text-stone-800 shadow-sm sm:max-w-[75%]">
+                <div className="flex items-center gap-2">
+                    {[0, 1, 2].map((dot) => (
+                        <span
+                            key={dot}
+                            className="h-2 w-2 rounded-full bg-stone-400"
+                            style={{ animation: `pulse 1.2s ease-in-out ${dot * 0.2}s infinite` }}
+                        />
+                    ))}
+                    <span className="ml-1 text-stone-600">{caption}</span>
+                </div>
+                <p className="mt-2 text-stone-500">{detail}</p>
+            </div>
+        </div>
+    );
+}
+
 function CategoryPicker({ report, issueTypes }) {
     const { data, setData, post, processing } = useForm({ issue_type: '' });
 
     function submit(e) {
         e.preventDefault();
         post(`/reports/${report.id}/confirm-category`);
+    }
+
+    if (processing) {
+        return (
+            <div className="space-y-3">
+                <SentByYou>{ISSUE_LABEL[data.issue_type] ?? data.issue_type}</SentByYou>
+                <StillProcessing
+                    caption="Routing your complaint…"
+                    detail="Finding who owns this and writing the complaint from your chosen category."
+                />
+            </div>
+        );
     }
 
     return (
@@ -119,13 +192,28 @@ export default function Show({ report, routing, issueTypes }) {
     const [locale, setLocale] = useState('en');
     const [copied, setCopied] = useState(false);
 
-    const draft = locale === 'en' ? report.draft_en : report.draft_ur;
+    const draft = (locale === 'en' ? report.draft_en : report.draft_ur)?.trim() || null;
     const hasOverride = report.routing_flags?.includes('special_zone_override');
     const hasUnverified = routing.some((r) => r.contact_unverified);
     const verifiedEmail = routing.find((r) => r.email)?.email;
+    const isProcessing = !SETTLED_STATUSES.includes(report.status);
+
+    // Re-fetch the report while it is still pending so the page advances to
+    // the routed result on its own. Stops the moment the status settles.
+    const { stop: stopPolling } = usePoll(3000, { only: ['report', 'routing'] }, { autoStart: isProcessing });
+
+    useEffect(() => {
+        if (!isProcessing) {
+            stopPolling();
+        }
+    }, [isProcessing, stopPolling]);
 
     function copyDraft() {
-        navigator.clipboard.writeText(draft ?? '');
+        if (!draft) {
+            return;
+        }
+
+        navigator.clipboard.writeText(draft);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     }
@@ -167,6 +255,8 @@ export default function Show({ report, routing, issueTypes }) {
             </div>
 
             <div className="mt-8">
+                {isProcessing && <StillProcessing />}
+
                 {report.status === 'awaiting_answer' && <ClarifyForm report={report} />}
 
                 {report.status === 'ai_failed' && <CategoryPicker report={report} issueTypes={issueTypes} />}
@@ -329,36 +419,49 @@ export default function Show({ report, routing, issueTypes }) {
                                 </div>
                             </div>
 
-                            <pre
-                                dir={locale === 'ur' ? 'rtl' : 'ltr'}
-                                className="mt-4 max-h-80 overflow-y-auto rounded-lg bg-stone-50 p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800 sm:max-h-96"
-                            >
-                                {draft}
-                            </pre>
+                            {draft ? (
+                                <pre
+                                    dir={locale === 'ur' ? 'rtl' : 'ltr'}
+                                    className="mt-4 max-h-80 overflow-y-auto rounded-lg bg-stone-50 p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800 sm:max-h-96"
+                                >
+                                    {draft}
+                                </pre>
+                            ) : (
+                                /* A drafted report can still carry a null draft in one
+                                   language. Say so rather than offering to send nothing. */
+                                <p className="mt-4 rounded-lg bg-stone-50 p-4 text-sm text-stone-500">
+                                    {locale === 'ur'
+                                        ? 'The Urdu version of this complaint is not available. Switch to English to send it.'
+                                        : 'The English version of this complaint is not available. Switch to Urdu to send it.'}
+                                </p>
+                            )}
 
                             {/* WhatsApp first and full-width on mobile: it is how a Karachi
-                                resident actually sends this, and the other two are secondary. */}
+                                resident actually sends this, and the other two are secondary.
+                                All three go inert when there is nothing to send. */}
                             <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                                 <a
-                                    href={`https://wa.me/?text=${encodeURIComponent(draft ?? '')}`}
+                                    href={draft ? `https://wa.me/?text=${encodeURIComponent(draft)}` : undefined}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700"
+                                    aria-disabled={!draft}
+                                    className="flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 aria-disabled:pointer-events-none aria-disabled:opacity-40"
                                 >
                                     Send on WhatsApp
                                 </a>
                                 <button
                                     type="button"
                                     onClick={copyDraft}
-                                    className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                                    disabled={!draft}
+                                    className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-40"
                                 >
                                     {copied ? 'Copied ✓' : 'Copy'}
                                 </button>
-                                {verifiedEmail && (
+                                {verifiedEmail && draft && (
                                     <a
                                         href={`mailto:${verifiedEmail}?subject=${encodeURIComponent(
                                             ISSUE_LABEL[report.issue_type] ?? 'Civic complaint',
-                                        )}&body=${encodeURIComponent(draft ?? '')}`}
+                                        )}&body=${encodeURIComponent(draft)}`}
                                         className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                                     >
                                         Email
