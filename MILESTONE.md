@@ -1,0 +1,242 @@
+# MILESTONE — who has what, what is done, what is next
+
+Team: **Maisam** and **Sumair**. Last verified against a full
+`php artisan migrate:fresh --seed` on **12 September 2026**.
+
+**Status: the app is demoable end to end right now.** Both lanes have landed and merged.
+Everything below marked "next" is improvement on a working build, not a gap in it.
+
+## One-command check
+
+```
+php artisan migrate:fresh --seed
+composer run dev
+```
+
+`DatabaseSeeder` now calls both lane seeders, so this is the only command anyone needs.
+Citizen flow is at `/`, admin is at `/admin` (`admin@cityaround.pk` / `password`).
+
+Current seeded state:
+
+| | count |
+|---|---|
+| Demo reports | 14 |
+| Gazetteer nodes | 123 |
+| Authorities | 41 |
+| Routing rules | 13 |
+
+---
+
+## Done and verified
+
+### Shared foundation
+
+- Schema for all four tables, plus models. Schema is frozen; additive changes only.
+- Routing pipeline on `App\Models\Report`: resolve location, apply special-zone override,
+  apply routing rule, score confidence, plus a no-AI template draft fallback.
+- Two DeepSeek agents in `app/Ai/Agents/`, spiked against the live API.
+- Inertia and React scaffold, teal accent, Instrument Sans plus Noto Nastaliq Urdu.
+- `DatabaseSeeder` calls `SumairSeeder` then `MaisamSeeder`, in that order. The order
+  matters: Maisam's reports reference Sumair's authorities and gazetteer nodes.
+
+### Maisam — citizen-facing flow
+
+- `Maisam\ReportController` with create, store, show, clarify and confirm-category.
+  Pipeline runs inline on submit, no queue.
+- `routes/maisam.php`, five routes.
+- `Pages/Maisam/Report/Create.jsx` — textarea, photo drop zone, submit, processing stepper.
+- `Pages/Maisam/Report/Show.jsx` — routing explanation, English and Urdu draft tabs,
+  copy / WhatsApp / mailto, clarifying-question form, AI-failed category picker.
+- `MaisamSeeder` — 14 demo reports. Every visual state is represented and confirmed
+  present: 11 drafted, 1 awaiting answer, 1 needs review, 1 AI failed.
+
+### Voice notes — built by Sumair, inside Maisam's lane
+
+**Maisam: read this before you touch `Create.jsx`.** Sumair edited one file in your lane
+while you were away, with Sumair's explicit go-ahead, because the brief asks for "photo,
+voice note or typed description" and voice was the one of the three that was missing.
+
+- **New file, Sumair's:** `resources/js/Components/VoiceNoteInput.jsx`. Self-contained.
+- **Your files, presentation only:** `Pages/Maisam/Report/Create.jsx`, `Show.jsx` and
+  `Layouts/AppLayout.jsx`. Voice wiring on Create, and a mobile pass across all three.
+  No logic, no data flow and no props were changed on any of them.
+- **No backend change at all.** No PHP was touched, no migration, no controller edit. Your
+  `store()` already validated `input_mode` against `text,voice,photo` and passed it
+  through, and the column already allowed it. Nothing was sending it until now.
+
+The approach is the browser Web Speech API, which is the option the original plan document
+picked for this exact risk. It needs no key and no provider. DeepSeek has no speech-to-text
+and only `DEEPSEEK_API_KEY` is set, so the transcription-provider route was blocked anyway.
+
+The transcript is appended into the same `raw_text` a typed report uses, so every pipeline
+stage runs unchanged and the AI still detects `input_language` from the text. Verified: an
+Urdu voice note resolves to Lyari and routes to the waste board, scoring high confidence.
+Your `Show.jsx` already renders a voice chip that could never appear before; it can now.
+
+**Built for phone and desktop both.** The mobile pass covered more than the recorder:
+
+- **Recognition restarts itself.** Mobile browsers end a session at every natural pause
+  regardless of `continuous`, so without this the recorder stops mid-sentence. A flag
+  distinguishes a pause from a real stop, and ordinary silence no longer counts as an error.
+- **Touch targets** on the record button and language chips meet the 44px minimum.
+- **No iOS zoom-on-focus.** The contact inputs were 14px, and iOS Safari zooms any focused
+  input under 16px, which jerks the page mid-form. Both are 16px now.
+- **Header and page gutters** tighten on small screens, and the redundant tagline hides.
+- **Photo copy** no longer says "drag and drop", which means nothing on a phone. The input
+  already offered the camera on mobile; only the wording was desktop-only.
+
+Then a UI pass over the report page, which is the screen a judge reads longest:
+
+- **Authority contacts stack and are tappable.** They were a dot-separated run that
+  overflowed a phone. Phone numbers are now `tel:` links and emails `mailto:`, which is
+  the actual point of this product on a phone.
+- **A real empty state for missing contacts.** 23 of the 41 seeded authorities publish no
+  phone or email, so this is the common path, not an edge case. It used to render a silent
+  blank gap that read as a broken page. It now says so and points at the escalation route.
+- **The draft sits on its own surface** with wrapping that survives long Urdu lines, and
+  WhatsApp is first and full-width on mobile because that is how this actually gets sent.
+- **Clarify and category forms stack** instead of forcing an input and button into one
+  non-wrapping row, and their inputs are 16px so iOS does not zoom.
+- **Urdu renders right-to-left** in the report text and the clarify input, matching the
+  draft pane. The Nastaliq font was already wired to `[dir='rtl']` and now actually applies.
+
+Then the compose screen at `/` was rebuilt as a **WhatsApp-style chat**, because a stack of
+grey boxes on white does not read as something you talk to:
+
+- **Full-height chat layout.** `AppLayout` takes a `bare` prop so this one page manages its
+  own height and the composer pins to the bottom of the viewport. The report page passes
+  nothing and is completely unaffected.
+- **The prompt is an incoming bubble**, your report is an outgoing accent bubble, and the
+  pipeline wait is a typing indicator whose caption advances through the three stages.
+- **Composer bar**: paperclip, auto-growing input, round send button. Enter sends on
+  desktop, Shift+Enter makes a newline, and the phone keyboard's Enter still makes a
+  newline as people expect.
+- **Voice is inline now**, a small mic pill beside the language toggle rather than a
+  full-width block. Same component, new `compact` variant.
+- **Photo previews as a sent image bubble** with a remove button, instead of a dashed
+  desktop drop zone.
+- **Four tappable starter prompts** so the empty state suggests what to say.
+- Safe-area padding at the bottom so the composer clears the iPhone home indicator.
+
+Verified by serving the app and loading all four report states, then submitting a real
+report through the endpoint: it created a voice-mode report, resolved it to Lyari and
+drafted at high confidence. The test rows were deleted, so the database is back to the
+seeded 14.
+
+Caveat for the demo: Web Speech is Chrome and Edge, including Android Chrome. iOS Safari
+does not support it. The component then tells the citizen to use their keyboard's own
+microphone key, which dictates into the same box and reaches the same pipeline. The
+textarea always works, so a failed mic costs nothing but the voice flourish.
+
+### Sumair — reference data and admin
+
+- **Filament forms fixed.** The routing rule form was broken: it omitted `issue_type`,
+  the primary key, so no rule could be created at all. The authority form had the same
+  defect with its `id` slug. Both fixed and creation verified end to end. JSON array
+  columns now use multi-selects and a tags input instead of plain text boxes, across
+  all four resources.
+- **DHA City routing bug found and fixed.** A DHA City report was resolving to
+  Cantonment Board Clifton with high confidence. The source document warns about exactly
+  this: DHA City is a separate scheme and must flag for human review. Cause was that the
+  cantonment carries the aliases "DHA" and "DHA Karachi", which substring-match inside
+  "DHA City", and the resolver breaks ties on longest name. Fixed in seed data by
+  renaming the node so it wins the tiebreak, keeping the old spellings as aliases.
+  Seeded report 10 now correctly comes through as `needs_human_review`.
+- **Gazetteer 94 nodes to 123.** Lyari went 2 nodes to 12 and Keamari 1 to 13, the two
+  towns the source document names as top priority.
+- **Urdu and Roman-Urdu aliases across all 28 towns.** The seed previously had one Urdu
+  alias in total, so Urdu reports mostly failed to resolve despite the app accepting
+  Urdu input. Verified: an Urdu garbage complaint now resolves to Keamari and routes to
+  the waste board.
+- **Two dashboard widgets**, both populating with real seeded data. "Broken this week by
+  area" clusters by resolved area and flags low-confidence counts. "Routing health"
+  shows totals, reports needing a human, and authorities lacking a citizen channel.
+  Auto-discovered, so `AdminPanelProvider` was never edited and cannot conflict.
+
+---
+
+## Priority order from here
+
+Work top down. Each item says who owns it and why it is worth the time.
+
+### 1. Rehearse the demo — both, together, before anything else
+
+Nothing below matters more than this. The build works; the risk now is presenting it
+badly. Walk the actual path a judge will see: submit a report, watch it route, open the
+admin, show the DHA City trap firing. Decide who talks and who drives.
+
+The DHA City case is the strongest thing in the build. It is a real trap from the source
+document, the pipeline catches it, and it is a thirty-second story: most systems would
+confidently send this to the wrong cantonment. Lead with it.
+
+Voice is now the natural opener: speak an Urdu complaint, watch it transcribe, route and
+draft. Rehearse it in Chrome with the microphone actually permitted, and agree a fallback
+line in case the room's audio defeats it. Typing the same sentence loses nothing but the
+flourish.
+
+### 2. Label the blank area rows in the admin — Sumair
+
+Two of the 14 reports have no resolved area and cluster under a blank row in the admin
+grouping and the widget. Both are correct: one is the vague Roman-Urdu report that is
+deliberately awaiting a clarifying answer, the other is the AI-failure demo that never
+ran the pipeline. The data is right, the presentation is not. A blank row reads as a bug
+to anyone watching. Give those rows a visible label such as "Location not yet resolved".
+
+### 3. Second pass on the admin against real data — Sumair
+
+Now unblocked, since Maisam's reports have landed. Load `/admin` and check the report
+list and view page against all 14. The infolist was polished before any real data
+existed, so this is the first time anyone has seen it populated.
+
+### 4. Empty and loading states on the citizen screens — Maisam
+
+Per the house rules every list needs an empty state and a `wire:loading` skeleton rather
+than a spinner. Worth a check on both pages before demo.
+
+### 5. Gazetteer depth beyond Lyari and Keamari — Sumair
+
+Diminishing returns now that the priority towns are covered. The structural gap is the
+union council tier, which the name graph skips entirely. Only worth starting if items 1
+through 4 are genuinely finished.
+
+---
+
+## Cut
+
+- **`/tanker` page.** Stretch C, deliberately dropped. `routes/sumair.php` is still an
+  empty placeholder and there is no tanker controller or page. The tariff data sits in
+  the source document if anyone wants to revive it, and a `tanker` routing rule is
+  already seeded pointing at the water corporation.
+- **Union council tier** in the gazetteer. Names are usable but boundaries are not
+  public, and nobody has sourced the roughly 246 names.
+- **SITE, Port and Steel Town as special zones.** Modelled as landmarks instead. A
+  special zone with no authority row overrides nothing, and there is no authority record
+  for a port trust or a steel-mill township. Comment in the seeder explains this so
+  nobody "fixes" it later.
+
+---
+
+## Ground rules that still apply
+
+- **Lane discipline.** Maisam owns `reports`, `app/Ai/`, `app/Http/Controllers/Maisam/`,
+  `routes/maisam.php`, `Pages/Maisam/`, `MaisamSeeder`. Sumair owns `authorities`,
+  `routing_rules`, `gazetteer_nodes`, `SumairSeeder`, and `app/Filament/`. Do not edit
+  across the line. **One deliberate exception so far:** the voice-note edit to
+  `Pages/Maisam/Report/Create.jsx`, described above. If you cross a lane again under time
+  pressure, record it here the same way so the other developer is never surprised by a
+  diff in their own files.
+- **Shared files need a heads-up first:** `routes/web.php`, `DatabaseSeeder.php`,
+  `AdminPanelProvider.php`, `layouts/app.blade.php`, `.env`, `config/*`, `composer.json`,
+  `package.json`.
+- **Schema is frozen.** New nullable columns and new tables only. Any schema change ships
+  with its seeder update in the same commit, because the other developer recovers by
+  running `migrate:fresh --seed`.
+- **No tests this build.** Verify by exercising the app and by
+  `php artisan tinker --execute`.
+- **Run `vendor/bin/pint --dirty --format agent`** before every commit that touched PHP.
+
+## Known environment issue
+
+The `laravel-boost` MCP server fails to connect, so the `database-query` and `search-docs`
+tools are unavailable. Use `php artisan tinker --execute` for data checks instead. Worth
+restarting the editor if someone needs those tools.

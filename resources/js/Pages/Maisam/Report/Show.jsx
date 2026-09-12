@@ -46,22 +46,23 @@ function ClarifyForm({ report }) {
     }
 
     return (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 sm:p-6">
             <p className="text-sm font-medium text-amber-900">
                 {report.clarifying_question || 'We need a bit more detail before we can route this.'}
             </p>
-            <form onSubmit={submit} className="mt-4 flex gap-3">
+            <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <input
                     type="text"
                     value={data.answer}
                     onChange={(e) => setData('answer', e.target.value)}
                     placeholder="Type your answer…"
-                    className="flex-1 rounded-lg border border-stone-300 p-3 text-sm focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
+                    dir={/[؀-ۿ]/.test(data.answer) ? 'rtl' : 'ltr'}
+                    className="min-h-11 flex-1 rounded-lg border border-stone-300 p-3 text-base focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
                 />
                 <button
                     type="submit"
                     disabled={processing || !data.answer.trim()}
-                    className="rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
+                    className="min-h-11 rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
                 >
                     Continue
                 </button>
@@ -80,16 +81,16 @@ function CategoryPicker({ report, issueTypes }) {
     }
 
     return (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 sm:p-6">
             <p className="text-sm font-medium text-red-900">
                 We couldn't reach our classifier just now. Pick the closest category and we'll still route
                 your complaint and draft it for you.
             </p>
-            <form onSubmit={submit} className="mt-4 flex flex-wrap gap-3">
+            <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <select
                     value={data.issue_type}
                     onChange={(e) => setData('issue_type', e.target.value)}
-                    className="rounded-lg border border-stone-300 p-3 text-sm focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
+                    className="min-h-11 rounded-lg border border-stone-300 bg-white p-3 text-base focus:border-accent-600 focus:outline-none focus:ring-1 focus:ring-accent-600"
                 >
                     <option value="">Choose a category…</option>
                     {issueTypes.map((type) => (
@@ -101,7 +102,7 @@ function CategoryPicker({ report, issueTypes }) {
                 <button
                     type="submit"
                     disabled={processing || !data.issue_type}
-                    className="rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
+                    className="min-h-11 rounded-lg bg-accent-600 px-5 py-3 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-40"
                 >
                     Route my complaint
                 </button>
@@ -140,10 +141,19 @@ export default function Show({ report, routing, issueTypes }) {
                     {report.input_mode === 'voice' && <Chip>🎙 voice</Chip>}
                 </div>
 
-                <p className="text-stone-700">{report.raw_text}</p>
+                <p
+                    dir={/[؀-ۿ]/.test(report.raw_text ?? '') ? 'rtl' : 'ltr'}
+                    className="text-stone-700"
+                >
+                    {report.raw_text}
+                </p>
 
                 {report.photo_url && (
-                    <img src={report.photo_url} alt="Attached to report" className="max-h-64 rounded-lg" />
+                    <img
+                        src={report.photo_url}
+                        alt="Attached to report"
+                        className="max-h-64 w-full rounded-lg object-cover sm:w-auto"
+                    />
                 )}
             </div>
 
@@ -153,7 +163,7 @@ export default function Show({ report, routing, issueTypes }) {
                 {report.status === 'ai_failed' && <CategoryPicker report={report} issueTypes={issueTypes} />}
 
                 {report.status === 'needs_review' && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:p-6">
                         This location needs a human to confirm jurisdiction before we route it automatically
                         (for example, DHA City is a separate scheme from DHA Phases 1-8). We've logged it and
                         suggest filing through the{' '}
@@ -163,8 +173,8 @@ export default function Show({ report, routing, issueTypes }) {
 
                 {report.status === 'drafted' && (
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <section className="rounded-lg border border-stone-200 p-6">
-                            <div className="flex items-center justify-between">
+                        <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
                                     Who this goes to
                                 </h2>
@@ -189,7 +199,7 @@ export default function Show({ report, routing, issueTypes }) {
                             <ul className="mt-4 space-y-4">
                                 {routing.map((r, i) => (
                                     <li key={i} className="border-t border-stone-100 pt-4 first:border-0 first:pt-0">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <span className="font-medium text-stone-900">{r.name}</span>
                                             <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
                                                 {ROLE_LABEL[r.role] ?? r.role}
@@ -200,14 +210,49 @@ export default function Show({ report, routing, issueTypes }) {
                                             <p className="mt-1 text-xs font-medium text-red-600">
                                                 No verified public contact on file for this authority.
                                             </p>
-                                        ) : (
-                                            <p className="mt-1 text-sm text-stone-700">
-                                                {r.phone && <span>☎ {r.phone}</span>}
-                                                {r.phone && (r.email || r.website) && ' · '}
-                                                {r.email && <span>✉ {r.email}</span>}
-                                                {r.email && r.website && ' · '}
-                                                {r.website && <span>{r.website}</span>}
+                                        ) : !r.phone && !r.email && !r.website ? (
+                                            /* 23 of the 41 seeded authorities have no phone or email.
+                                               Without this the card renders a silent blank gap, which
+                                               reads as a broken page rather than missing public data. */
+                                            <p className="mt-1 text-xs text-stone-500">
+                                                No public contact channel published. Send via the escalation
+                                                route below.
                                             </p>
+                                        ) : (
+                                            /* Stacked, not a dot-separated run: authority emails and
+                                               URLs here are long enough to overflow a phone, and a
+                                               tappable phone number is the whole point on mobile. */
+                                            <div className="mt-2 space-y-1 text-sm">
+                                                {r.phone && (
+                                                    <a
+                                                        href={`tel:${r.phone.replace(/[^+\d]/g, '')}`}
+                                                        className="flex min-h-8 items-center gap-2 text-accent-700 hover:underline"
+                                                    >
+                                                        <span aria-hidden="true">☎</span>
+                                                        <span className="break-all">{r.phone}</span>
+                                                    </a>
+                                                )}
+                                                {r.email && (
+                                                    <a
+                                                        href={`mailto:${r.email}`}
+                                                        className="flex min-h-8 items-center gap-2 text-accent-700 hover:underline"
+                                                    >
+                                                        <span aria-hidden="true">✉</span>
+                                                        <span className="break-all">{r.email}</span>
+                                                    </a>
+                                                )}
+                                                {r.website && (
+                                                    <a
+                                                        href={r.website}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="flex min-h-8 items-center gap-2 text-stone-600 hover:underline"
+                                                    >
+                                                        <span aria-hidden="true">🔗</span>
+                                                        <span className="break-all">{r.website}</span>
+                                                    </a>
+                                                )}
+                                            </div>
                                         )}
                                     </li>
                                 ))}
@@ -221,21 +266,25 @@ export default function Show({ report, routing, issueTypes }) {
                             )}
                         </section>
 
-                        <section className="rounded-lg border border-stone-200 p-6">
-                            <div className="flex items-center justify-between">
+                        <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
                                 <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
                                     Complaint draft
                                 </h2>
                                 <div className="flex overflow-hidden rounded-lg border border-stone-200 text-sm">
                                     <button
+                                        type="button"
                                         onClick={() => setLocale('en')}
-                                        className={`px-3 py-1 ${locale === 'en' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600'}`}
+                                        aria-pressed={locale === 'en'}
+                                        className={`min-h-9 px-4 transition ${locale === 'en' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
                                     >
                                         English
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => setLocale('ur')}
-                                        className={`px-3 py-1 ${locale === 'ur' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600'}`}
+                                        aria-pressed={locale === 'ur'}
+                                        className={`min-h-9 px-4 transition ${locale === 'ur' ? 'bg-accent-600 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
                                     >
                                         اردو
                                     </button>
@@ -244,32 +293,35 @@ export default function Show({ report, routing, issueTypes }) {
 
                             <pre
                                 dir={locale === 'ur' ? 'rtl' : 'ltr'}
-                                className="mt-4 max-h-96 overflow-y-auto whitespace-pre-wrap font-sans text-sm text-stone-800"
+                                className="mt-4 max-h-80 overflow-y-auto rounded-lg bg-stone-50 p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800 sm:max-h-96"
                             >
                                 {draft}
                             </pre>
 
-                            <div className="mt-4 flex flex-wrap gap-2">
-                                <button
-                                    onClick={copyDraft}
-                                    className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
-                                >
-                                    {copied ? 'Copied ✓' : 'Copy'}
-                                </button>
+                            {/* WhatsApp first and full-width on mobile: it is how a Karachi
+                                resident actually sends this, and the other two are secondary. */}
+                            <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                                 <a
                                     href={`https://wa.me/?text=${encodeURIComponent(draft ?? '')}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                                    className="flex min-h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700"
                                 >
-                                    WhatsApp
+                                    Send on WhatsApp
                                 </a>
+                                <button
+                                    type="button"
+                                    onClick={copyDraft}
+                                    className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                                >
+                                    {copied ? 'Copied ✓' : 'Copy'}
+                                </button>
                                 {verifiedEmail && (
                                     <a
                                         href={`mailto:${verifiedEmail}?subject=${encodeURIComponent(
                                             ISSUE_LABEL[report.issue_type] ?? 'Civic complaint',
                                         )}&body=${encodeURIComponent(draft ?? '')}`}
-                                        className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+                                        className="flex min-h-11 items-center justify-center rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                                     >
                                         Email
                                     </a>
