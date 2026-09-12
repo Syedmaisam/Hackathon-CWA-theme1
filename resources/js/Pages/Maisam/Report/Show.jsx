@@ -1,4 +1,4 @@
-import { useForm, Head } from '@inertiajs/react';
+import { useForm, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 
@@ -30,6 +30,10 @@ const ISSUE_LABEL = {
     park_amenity: 'Park / amenity',
     unknown: 'Unclassified',
 };
+
+function isUrdu(text) {
+    return /[؀-ۿ]/.test(text ?? '');
+}
 
 function Chip({ children }) {
     return (
@@ -130,8 +134,28 @@ export default function Show({ report, routing, issueTypes }) {
         <AppLayout>
             <Head title="Your report" />
 
+            {/* The report reads as the message you sent, so the routing below it
+                reads as the reply. Same shape as the compose screen. */}
             <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex justify-end">
+                    <div className="max-w-[85%] space-y-2 sm:max-w-[75%]">
+                        {report.photo_url && (
+                            <img
+                                src={report.photo_url}
+                                alt="Attached to report"
+                                className="w-full rounded-2xl rounded-br-sm object-cover"
+                            />
+                        )}
+                        <div
+                            dir={isUrdu(report.raw_text) ? 'rtl' : 'ltr'}
+                            className="rounded-2xl rounded-br-sm bg-accent-600 px-4 py-3 text-sm whitespace-pre-wrap text-white shadow-sm"
+                        >
+                            {report.raw_text}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-end gap-2">
                     {report.issue_type && <Chip>{ISSUE_LABEL[report.issue_type] ?? report.issue_type}</Chip>}
                     {report.severity && <Chip>Severity: {report.severity}</Chip>}
                     {(report.hazards ?? []).map((hazard) => (
@@ -140,21 +164,6 @@ export default function Show({ report, routing, issueTypes }) {
                     {report.resolved_area && <Chip>📍 {report.resolved_area}</Chip>}
                     {report.input_mode === 'voice' && <Chip>🎙 voice</Chip>}
                 </div>
-
-                <p
-                    dir={/[؀-ۿ]/.test(report.raw_text ?? '') ? 'rtl' : 'ltr'}
-                    className="text-stone-700"
-                >
-                    {report.raw_text}
-                </p>
-
-                {report.photo_url && (
-                    <img
-                        src={report.photo_url}
-                        alt="Attached to report"
-                        className="max-h-64 w-full rounded-lg object-cover sm:w-auto"
-                    />
-                )}
             </div>
 
             <div className="mt-8">
@@ -163,16 +172,45 @@ export default function Show({ report, routing, issueTypes }) {
                 {report.status === 'ai_failed' && <CategoryPicker report={report} issueTypes={issueTypes} />}
 
                 {report.status === 'needs_review' && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:p-6">
-                        This location needs a human to confirm jurisdiction before we route it automatically
-                        (for example, DHA City is a separate scheme from DHA Phases 1-8). We've logged it and
-                        suggest filing through the{' '}
-                        <span className="font-medium">Pakistan Citizen Portal</span> in the meantime.
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-6">
+                        <div className="flex items-start gap-3">
+                            <span className="text-xl" aria-hidden="true">
+                                🔍
+                            </span>
+                            <div className="text-sm text-amber-900">
+                                <p className="font-medium">A person needs to check this one</p>
+                                <p className="mt-1">
+                                    Jurisdiction here is genuinely disputed, so we would rather say so than
+                                    guess and send your complaint to the wrong office. DHA City, for example,
+                                    is a separate scheme from DHA Phases 1 to 8. We have logged it, and
+                                    suggest filing through the{' '}
+                                    <span className="font-medium">Pakistan Citizen Portal</span> meanwhile.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
                 {report.status === 'drafted' && (
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <>
+                        {/* The whole product promise in one line: we worked out who
+                            owns this. Without it the page opens on two grey cards. */}
+                        <div className="mb-6 flex items-start gap-3 rounded-xl border border-accent-100 bg-accent-50 p-4">
+                            <span className="text-xl" aria-hidden="true">
+                                ✅
+                            </span>
+                            <div>
+                                <p className="font-medium text-stone-900">
+                                    Routed to {routing[0]?.name ?? 'the responsible authority'}
+                                </p>
+                                <p className="mt-0.5 text-sm text-stone-600">
+                                    Your complaint is written and ready to send. Review it below, then send it
+                                    on WhatsApp or email.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
@@ -327,8 +365,18 @@ export default function Show({ report, routing, issueTypes }) {
                                     </a>
                                 )}
                             </div>
-                        </section>
-                    </div>
+                            </section>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <Link
+                                href="/"
+                                className="inline-flex min-h-11 items-center rounded-lg border border-stone-300 bg-white px-5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                            >
+                                Report something else
+                            </Link>
+                        </div>
+                    </>
                 )}
             </div>
         </AppLayout>
