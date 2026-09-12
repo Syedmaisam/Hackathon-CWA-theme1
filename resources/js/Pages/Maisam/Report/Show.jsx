@@ -1,7 +1,12 @@
-import { useForm, Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useForm, Head, Link, usePoll } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import Icon from '@/Components/Icon';
+
+// Every status the page knows how to render. Anything else — `pending`, or a
+// status added later — is treated as "still being worked on" rather than
+// rendering an empty page under the chips.
+const SETTLED_STATUSES = ['awaiting_answer', 'ai_failed', 'needs_review', 'drafted'];
 
 const CONFIDENCE_STYLE = {
     high: 'bg-emerald-100 text-emerald-800',
@@ -58,12 +63,40 @@ function Section({ title, action, children }) {
     );
 }
 
+/** The citizen's follow-up, shown as an outgoing bubble while it is being processed. */
+function SentByYou({ children }) {
+    return (
+        <div className="flex justify-end">
+            <div
+                dir={isUrdu(children) ? 'rtl' : 'ltr'}
+                className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent-600 px-4 py-3 text-sm whitespace-pre-wrap text-white shadow-sm sm:max-w-[75%]"
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
 function ClarifyForm({ report }) {
     const { data, setData, post, processing, errors } = useForm({ answer: '' });
 
     function submit(e) {
         e.preventDefault();
         post(`/reports/${report.id}/clarify`);
+    }
+
+    // The clarify round trip re-runs the whole pipeline, including a live
+    // model call, so the wait is seconds rather than milliseconds.
+    if (processing) {
+        return (
+            <div className="space-y-3">
+                <SentByYou>{data.answer}</SentByYou>
+                <StillProcessing
+                    caption="Thanks — routing it now…"
+                    detail="We're re-reading your report with that detail, finding who owns this, and writing the complaint."
+                />
+            </div>
+        );
     }
 
     return (
@@ -94,12 +127,52 @@ function ClarifyForm({ report }) {
     );
 }
 
+/**
+ * The compose screen's typing indicator, as the reply bubble on this screen.
+ * Shown while the pipeline is still running so a refresh mid-call, an async
+ * queue, or a crash between save and catch never lands on a dead page.
+ */
+function StillProcessing({
+    caption = 'Still working on your report…',
+    detail = "We're reading it, finding who owns this, and writing the complaint. This page updates by itself — no need to refresh.",
+}) {
+    return (
+        <div className="flex">
+            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm text-stone-800 shadow-sm sm:max-w-[75%]">
+                <div className="flex items-center gap-2">
+                    {[0, 1, 2].map((dot) => (
+                        <span
+                            key={dot}
+                            className="h-2 w-2 rounded-full bg-stone-400"
+                            style={{ animation: `pulse 1.2s ease-in-out ${dot * 0.2}s infinite` }}
+                        />
+                    ))}
+                    <span className="ml-1 text-stone-600">{caption}</span>
+                </div>
+                <p className="mt-2 text-stone-500">{detail}</p>
+            </div>
+        </div>
+    );
+}
+
 function CategoryPicker({ report, issueTypes }) {
     const { data, setData, post, processing } = useForm({ issue_type: '' });
 
     function submit(e) {
         e.preventDefault();
         post(`/reports/${report.id}/confirm-category`);
+    }
+
+    if (processing) {
+        return (
+            <div className="space-y-3">
+                <SentByYou>{ISSUE_LABEL[data.issue_type] ?? data.issue_type}</SentByYou>
+                <StillProcessing
+                    caption="Routing your complaint…"
+                    detail="Finding who owns this and writing the complaint from your chosen category."
+                />
+            </div>
+        );
     }
 
     return (
@@ -138,17 +211,24 @@ export default function Show({ report, routing, issueTypes }) {
     const [locale, setLocale] = useState('en');
     const [copied, setCopied] = useState(false);
 
-    const draft = locale === 'en' ? report.draft_en : report.draft_ur;
+    const draft = (locale === 'en' ? report.draft_en : report.draft_ur)?.trim() || null;
     const hasOverride = report.routing_flags?.includes('special_zone_override');
     const hasUnverified = routing.some((r) => r.contact_unverified);
     const verifiedEmail = routing.find((r) => r.email)?.email;
+    const isProcessing = !SETTLED_STATUSES.includes(report.status);
 
-    // draft_en and draft_ur can both be null on a drafted report. Without this
-    // the citizen can copy nothing and send an empty WhatsApp message.
-    const hasDraft = Boolean(draft?.trim());
+    // Re-fetch the report while it is still pending so the page advances to
+    // the routed result on its own. Stops the moment the status settles.
+    const { stop: stopPolling } = usePoll(3000, { only: ['report', 'routing'] }, { autoStart: isProcessing });
+
+    useEffect(() => {
+        if (!isProcessing) {
+            stopPolling();
+        }
+    }, [isProcessing, stopPolling]);
 
     function copyDraft() {
-        if (!hasDraft) {
+        if (!draft) {
             return;
         }
 
@@ -177,7 +257,7 @@ export default function Show({ report, routing, issueTypes }) {
 
     // Sending is the entire point of this screen, so on a phone it is pinned
     // above the tab bar rather than sitting below a long scroll.
-    const actions = report.status === 'drafted' && hasDraft && (
+    const actions = report.status === 'drafted' && draft && (
         <div className="shrink-0 border-t border-stone-200 bg-white px-4 py-3">
             <div className="mx-auto flex max-w-2xl gap-2">
                 <a
@@ -249,24 +329,7 @@ export default function Show({ report, routing, issueTypes }) {
             </div>
 
             <div className="mt-6">
-                {/* pending is the column default and the value store() creates every
-                    report with, so it must render something rather than nothing. */}
-                {(report.status === 'pending' || report.status === 'processing') && (
-                    <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            {[0, 1, 2].map((dot) => (
-                                <span
-                                    key={dot}
-                                    className="h-2 w-2 rounded-full bg-stone-400"
-                                    style={{ animation: `pulse 1.2s ease-in-out ${dot * 0.2}s infinite` }}
-                                />
-                            ))}
-                            <p className="text-sm text-stone-600">
-                                Still working out who owns this. Refresh in a moment.
-                            </p>
-                        </div>
-                    </div>
-                )}
+                {isProcessing && <StillProcessing />}
 
                 {report.status === 'awaiting_answer' && <ClarifyForm report={report} />}
 
@@ -425,7 +488,7 @@ export default function Show({ report, routing, issueTypes }) {
                                 </div>
                             }
                         >
-                            {hasDraft ? (
+                            {draft ? (
                                 <pre
                                     dir={locale === 'ur' ? 'rtl' : 'ltr'}
                                     className="max-h-96 overflow-y-auto p-4 font-sans text-sm break-words whitespace-pre-wrap text-stone-800"
@@ -433,10 +496,13 @@ export default function Show({ report, routing, issueTypes }) {
                                     {draft}
                                 </pre>
                             ) : (
+                                /* A drafted report can still carry a null draft in one
+                                   language. Say so rather than offering to send nothing.
+                                   The send actions in the footer hide in the same case. */
                                 <p className="p-4 text-sm text-stone-500">
-                                    The {locale === 'ur' ? 'Urdu' : 'English'} version of this complaint
-                                    didn&apos;t come through. Switch language, or copy the other version and
-                                    send that.
+                                    {locale === 'ur'
+                                        ? 'The Urdu version of this complaint is not available. Switch to English to send it.'
+                                        : 'The English version of this complaint is not available. Switch to Urdu to send it.'}
                                 </p>
                             )}
                         </Section>
