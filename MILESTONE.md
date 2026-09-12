@@ -21,8 +21,8 @@ Current seeded state:
 | | count |
 |---|---|
 | Demo reports | 14 |
-| Gazetteer nodes | 123 |
-| Authorities | 41 |
+| Gazetteer nodes | 264 (157 of them union councils) |
+| Authorities | 34 |
 | Routing rules | 13 |
 
 ---
@@ -314,7 +314,32 @@ Sumair's last seeder commit. `migrate:fresh --seed` brought it to 123/41/13/14 a
 Lyari, Keamari, DHA City and DHA Phase 6 cases all resolve correctly. After pulling any
 seeder change, reseed; the file cache survives it.
 
-### 5. Gazetteer depth beyond Lyari and Keamari — Sumair
+### 5. ~~Town/UC picker, TMC dataset v2, cantonments and DHA removed~~ — DONE (Maisam, 12 Sep, lane rule lifted)
+
+Source: `data/karachi_tmc_data_integrated-v2.md`. Scope is now the TMC towns only.
+
+- **Location is picked, not guessed.** The compose screen has a required search box over
+  27 towns + 157 UCs (`Components/PlacePicker.jsx`, client-side filter, no endpoint). A UC
+  row shows `UC-04 · Gulshan-e-Iqbal · District East`, a town row `Town · District East`.
+  Demo path: type *disco* → Disco Bakery → describe a pothole → routed to TMC Gulshan-e-Iqbal
+  with the UC in the draft. The picked node drives routing; the free-text resolver only runs
+  for rows without one. A Lahore address with a Karachi pick routes to the Karachi pick — the
+  picker is the authority.
+- **Data.** UCs are `landmark` nodes with `uc_code` (additive migration, plus admin-only
+  `contact_name`/`contact_phone`). District comes from the existing gazetteer — the file's
+  district headings are wrong. Dropped as copy-paste: Saddar/Jamshed/Jinnah (Orangi's list),
+  Bin Qasim (Ibrahim Hyderi's). Gadap, Lyari, Chanesar, Sohrab Goth, Safoora, Keamari, SITE
+  have no UCs in the file. TMC office contacts loaded **unverified** (citizen_visible unchanged).
+- **Removed:** DHA + six cantonment authorities, all special-zone nodes, cantonment sentences
+  in rule notes, the override banner and DHA copy in `Show.jsx`. Clifton now sits under
+  Saddar, Saudabad under Malir Town. `Report::applySpecialZoneOverride()` is dormant, not
+  deleted. No seeded `needs_review` row — nothing can produce it now.
+- Seeded reports 1, 2, 7, 9, 10, 11, 12 rewritten to carry a picked node.
+
+Verified: reseed clean, 422 without a pick or with a district id, live submit via headless
+Chrome, clarify re-run keeps the picked UC, Filament shows the UC column.
+
+### 6. Gazetteer depth beyond Lyari and Keamari — Sumair
 
 Diminishing returns now that the priority towns are covered. The structural gap is the
 union council tier, which the name graph skips entirely. Genuinely the biggest hole in the
@@ -403,8 +428,8 @@ Everything except A and E is Maisam's. This cannot be built from Sumair's side a
   empty placeholder and there is no tanker controller or page. The tariff data sits in
   the source document if anyone wants to revive it, and a `tanker` routing rule is
   already seeded pointing at the water corporation.
-- **Union council tier** in the gazetteer. Names are usable but boundaries are not
-  public, and nobody has sourced the roughly 246 names.
+- **Union council tier** — no longer cut: 157 UCs for 16 towns are seeded (item 5). Still
+  missing: UCs for the 11 towns the v2 dataset does not list.
 - **SITE, Port and Steel Town as special zones.** Modelled as landmarks instead. A
   special zone with no authority row overrides nothing, and there is no authority record
   for a port trust or a steel-mill township. Comment in the seeder explains this so
