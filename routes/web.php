@@ -1,7 +1,4 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
+require __DIR__.'/maisam.php';
+require __DIR__.'/sumair.php';
