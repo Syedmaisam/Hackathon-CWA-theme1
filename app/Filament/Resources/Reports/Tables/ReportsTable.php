@@ -74,7 +74,13 @@ class ReportsTable
                     ->label('Received')
                     ->since()
                     ->tooltip(fn ($state): ?string => $state?->toDayDateTimeString())
-                    ->sortable(),
+                    // Filament sorts an unsorted column ascending on the first
+                    // click, which on a date column means the oldest report
+                    // first — never what anyone wants on a triage screen. This
+                    // flips it so one click gives newest first and a second
+                    // click gives oldest.
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderBy('created_at', $direction === 'asc' ? 'desc' : 'asc')),
             ])
             // Anything a human still has to deal with floats to the top, newest
             // first within that. Sorting purely by date buried the two reports
