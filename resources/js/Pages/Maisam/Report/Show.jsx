@@ -213,7 +213,7 @@ export default function Show({ report, routing, issueTypes }) {
 
     const draft = (locale === 'en' ? report.draft_en : report.draft_ur)?.trim() || null;
     const hasUnverified = routing.some((r) => r.contact_unverified);
-    const verifiedEmail = routing.find((r) => r.email)?.email;
+    const verifiedEmail = routing.find((r) => r.email && r.email_verified)?.email;
     const isProcessing = !SETTLED_STATUSES.includes(report.status);
 
     // Re-fetch the report while it is still pending so the page advances to
@@ -398,11 +398,7 @@ export default function Show({ report, routing, issueTypes }) {
                                             </span>
                                         </div>
                                         <p className="mt-1 text-sm text-stone-500">{r.reason}</p>
-                                        {r.contact_unverified ? (
-                                            <p className="mt-1 text-xs font-medium text-red-600">
-                                                No verified public contact on file for this authority.
-                                            </p>
-                                        ) : !r.phone && !r.email && !r.website ? (
+                                        {!r.phone && !r.email && !r.website ? (
                                             /* 23 of the 41 seeded authorities have no phone or email.
                                                Without this the card renders a silent blank gap, which
                                                reads as a broken page rather than missing public data. */
@@ -415,6 +411,11 @@ export default function Show({ report, routing, issueTypes }) {
                                                URLs here are long enough to overflow a phone, and a
                                                tappable phone number is the whole point on mobile. */
                                             <div className="mt-2 space-y-1 text-sm">
+                                                {r.contact_unverified && (
+                                                    <p className="text-xs font-medium text-amber-700">
+                                                        Unverified contact — from the TMC directory, not yet confirmed live.
+                                                    </p>
+                                                )}
                                                 {r.phone && (
                                                     <a
                                                         href={`tel:${r.phone.replace(/[^+\d]/g, '')}`}

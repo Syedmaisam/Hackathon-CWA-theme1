@@ -320,9 +320,12 @@ class ReportController extends Controller
                 'role' => $r['role'],
                 'reason' => $r['reason'],
                 'rule' => $r['rule'],
-                'phone' => $authority?->phone_verified ? $authority->phone : null,
-                'email' => $authority?->email_verified ? $authority->email : null,
-                'website' => $authority?->website_verified ? $authority->website : null,
+                // Unverified channels (most TMCs, loaded from the v2 dataset) are
+                // shown too, labelled as such — hiding them read as "no contact".
+                'phone' => $authority?->phone,
+                'email' => $authority?->email,
+                'website' => $authority?->website,
+                'email_verified' => (bool) $authority?->email_verified,
                 'contact_unverified' => ! $authority
                     || ! ($authority->phone_verified || $authority->email_verified || $authority->website_verified),
             ];
